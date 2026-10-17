@@ -15,3 +15,8 @@ pip install -r requirements.txt
 python main.py      # run the demo on data/budapest.csv
 pytest              # run the test suite
 ```
+
+## Docs
+
+- [docs/walkthrough.md](docs/walkthrough.md): current codebase walkthrough
+- [docs/roadmap.md](docs/roadmap.md): target design and phase status

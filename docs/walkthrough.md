@@ -56,8 +56,10 @@ WeatherDataExplorer/
 ├── requirements.txt           ← Lists external libraries needed
 ├── README.md                  ← Setup & usage instructions
 ├── .gitignore                 ← Tells Git which files to ignore
-├── Task.md                    ← Original project assignment
-└── plan.md                    ← Our implementation roadmap
+├── docs/
+│   ├── walkthrough.md         ← This file: tour of the current codebase
+│   └── roadmap.md             ← Target design & phase-by-phase plan
+└── Task.md                    ← Original project assignment
 ```
 
 ### Getting set up
@@ -77,7 +79,7 @@ pip install -r requirements.txt
 
 ## 3. The Data — What We're Working With
 
-[budapest.csv](data/budapest.csv) contains **1,827 rows** of daily weather observations for Budapest from **2021-10-17 to 2026-10-17** (about 5 years).
+[budapest.csv](../data/budapest.csv) contains **1,827 rows** of daily weather observations for Budapest from **2021-10-17 to 2026-10-17** (about 5 years).
 
 Each row looks like this:
 
@@ -97,7 +99,7 @@ Each row looks like this:
 
 ## 4. The `weather` Package — Module by Module
 
-### 4.1 [exceptions.py](weather/exceptions.py) — Custom Errors
+### 4.1 [exceptions.py](../weather/exceptions.py) — Custom Errors
 
 **Why custom exceptions?** Python's built-in exceptions (`ValueError`, `FileNotFoundError`) are too generic. When something goes wrong in *our* weather code, we want errors that carry *weather-specific* information.
 
@@ -127,7 +129,7 @@ class MalformedDataError(WeatherDataError):
 
 ---
 
-### 4.2 [logger.py](weather/logger.py) — Logging Setup
+### 4.2 [logger.py](../weather/logger.py) — Logging Setup
 
 Instead of `print()` for debugging, we use Python's built-in `logging` module. This one function configures it for the whole app:
 
@@ -153,7 +155,7 @@ Each log line shows: **time** → **severity** → **which module** → **messag
 
 ---
 
-### 4.3 [models.py](weather/models.py) — Core Data Structures
+### 4.3 [models.py](../weather/models.py) — Core Data Structures
 
 This is the **heart of the project**. It defines the two main classes that all other modules work with.
 
@@ -228,7 +230,7 @@ This uses a **list comprehension** to create a subset. Notice it returns a *new*
 
 ---
 
-### 4.4 [loaders.py](weather/loaders.py) — Reading CSV Files
+### 4.4 [loaders.py](../weather/loaders.py) — Reading CSV Files
 
 The `CSVLoader` class reads a `.csv` file and converts each row into a `Measurement` object, collecting them into a `WeatherStation`.
 
@@ -279,7 +281,7 @@ This approach is called **defensive programming** — the app is tolerant of imp
 
 ---
 
-### 4.5 [analysis.py](weather/analysis.py) — Basic Statistics
+### 4.5 [analysis.py](../weather/analysis.py) — Basic Statistics
 
 Currently a **minimal placeholder** that will be massively expanded in Phase 3:
 
@@ -304,7 +306,7 @@ The `key=lambda m: m.tmax` pattern tells `max()` to compare by `tmax` instead of
 
 ---
 
-### 4.6 [\_\_init\_\_.py](weather/__init__.py) — Package Exports
+### 4.6 [\_\_init\_\_.py](../weather/__init__.py) — Package Exports
 
 ```python
 from weather.analysis import WeatherAnalyzer
@@ -333,7 +335,7 @@ The `__all__` list documents exactly which names are part of the public API.
 
 ---
 
-## 5. [main.py](main.py) — Entry Point
+## 5. [main.py](../main.py) — Entry Point
 
 This is what you run: `python3 main.py`
 
@@ -371,7 +373,7 @@ Missing precipitation values: 247
 
 ---
 
-## 6. The Test Suite — [test_models.py](tests/test_models.py)
+## 6. The Test Suite — [test_models.py](../tests/test_models.py)
 
 We have **21 tests** organised into two test classes. Here's what each group verifies:
 
@@ -431,7 +433,7 @@ def station(sample_measurements):
 pytest        # add -v for one line per test
 ```
 
-No path is needed: [pyproject.toml](pyproject.toml) tells pytest where tests live (`testpaths`) and puts the project root on the import path (`pythonpath`), so `from weather.models import ...` just works. That's why `tests/` needs no `__init__.py`.
+No path is needed: [pyproject.toml](../pyproject.toml) tells pytest where tests live (`testpaths`) and puts the project root on the import path (`pythonpath`), so `from weather.models import ...` just works. That's why `tests/` needs no `__init__.py`.
 
 ---
 
@@ -441,26 +443,26 @@ Here's a quick reference of every Python technique this codebase demonstrates, w
 
 | Concept | Example | File |
 |---------|---------|------|
-| **Dataclass** | `@dataclass(frozen=True, slots=True)` | [models.py](weather/models.py#L16-L17) |
-| **Dunder `__lt__`** | Enables `sorted()` on measurements | [models.py](weather/models.py#L42-L46) |
-| **Dunder `__len__`** | Enables `len(station)` | [models.py](weather/models.py#L75-L77) |
-| **Dunder `__iter__`** | Enables `for m in station` (typed `Iterator[Measurement]`) | [models.py](weather/models.py#L79-L81) |
-| **Dunder `__repr__`** | Human-readable `repr()` | [models.py](weather/models.py#L50-L55) |
-| **Custom exceptions** | `WeatherDataError` → `MalformedDataError` | [exceptions.py](weather/exceptions.py) |
-| **Exception hierarchy** | `except MalformedDataError` vs `except WeatherDataError` | [loaders.py](weather/loaders.py#L97-L101) |
-| **Logging** | `logging.getLogger(__name__)` | [loaders.py](weather/loaders.py#L17) |
-| **Module constant + set ops** | `REQUIRED_COLUMNS - set(fieldnames)` | [loaders.py](weather/loaders.py#L19) |
-| **`csv.DictReader`** | Reads CSV rows as dictionaries | [loaders.py](weather/loaders.py#L58) |
-| **`pathlib.Path`** | Object-oriented file path handling | [loaders.py](weather/loaders.py#L50) |
-| **`datetime`** | Date parsing and storage | [models.py](weather/models.py#L11), [loaders.py](weather/loaders.py#L68) |
-| **`statistics.mean`** | Average temperature | [analysis.py](weather/analysis.py#L9) |
-| **List comprehension** | `[m for m in self.measurements if ...]` | [models.py](weather/models.py#L98-L103) |
-| **Generator expression** | `mean(m.tavg for m in self.station)` | [analysis.py](weather/analysis.py#L22) |
-| **Lambda** | `key=lambda m: m.tmax` | [analysis.py](weather/analysis.py#L25) |
+| **Dataclass** | `@dataclass(frozen=True, slots=True)` | [models.py](../weather/models.py#L16-L17) |
+| **Dunder `__lt__`** | Enables `sorted()` on measurements | [models.py](../weather/models.py#L42-L46) |
+| **Dunder `__len__`** | Enables `len(station)` | [models.py](../weather/models.py#L75-L77) |
+| **Dunder `__iter__`** | Enables `for m in station` (typed `Iterator[Measurement]`) | [models.py](../weather/models.py#L79-L81) |
+| **Dunder `__repr__`** | Human-readable `repr()` | [models.py](../weather/models.py#L50-L55) |
+| **Custom exceptions** | `WeatherDataError` → `MalformedDataError` | [exceptions.py](../weather/exceptions.py) |
+| **Exception hierarchy** | `except MalformedDataError` vs `except WeatherDataError` | [loaders.py](../weather/loaders.py#L97-L101) |
+| **Logging** | `logging.getLogger(__name__)` | [loaders.py](../weather/loaders.py#L17) |
+| **Module constant + set ops** | `REQUIRED_COLUMNS - set(fieldnames)` | [loaders.py](../weather/loaders.py#L19) |
+| **`csv.DictReader`** | Reads CSV rows as dictionaries | [loaders.py](../weather/loaders.py#L58) |
+| **`pathlib.Path`** | Object-oriented file path handling | [loaders.py](../weather/loaders.py#L50) |
+| **`datetime`** | Date parsing and storage | [models.py](../weather/models.py#L11), [loaders.py](../weather/loaders.py#L68) |
+| **`statistics.mean`** | Average temperature | [analysis.py](../weather/analysis.py#L9) |
+| **List comprehension** | `[m for m in self.measurements if ...]` | [models.py](../weather/models.py#L98-L103) |
+| **Generator expression** | `mean(m.tavg for m in self.station)` | [analysis.py](../weather/analysis.py#L22) |
+| **Lambda** | `key=lambda m: m.tmax` | [analysis.py](../weather/analysis.py#L25) |
 | **Type hints** | `-> float`, `float \| None` | Throughout |
-| **`pytest` fixtures** | `@pytest.fixture` for reusable test data | [test_models.py](tests/test_models.py#L23-L37) |
-| **`pytest.raises`** | Testing that exceptions are raised | [test_models.py](tests/test_models.py#L59-L62) |
-| **Package `__init__.py`** | Re-exports for clean imports | [\_\_init\_\_.py](weather/__init__.py) |
+| **`pytest` fixtures** | `@pytest.fixture` for reusable test data | [test_models.py](../tests/test_models.py#L23-L37) |
+| **`pytest.raises`** | Testing that exceptions are raised | [test_models.py](../tests/test_models.py#L59-L62) |
+| **Package `__init__.py`** | Re-exports for clean imports | [\_\_init\_\_.py](../weather/__init__.py) |
 
 ---
 

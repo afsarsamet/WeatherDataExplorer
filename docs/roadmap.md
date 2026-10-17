@@ -1,6 +1,6 @@
 # Weather Data Explorer: Final Project Blueprint
 
-> **Status:** Phase 1 complete (✅). Phases 2–5 pending. See [pyproject.md](pyproject.md) for the walkthrough of the current state.
+> **Status:** Phase 1 complete (✅). Phases 2–5 pending. See [walkthrough.md](walkthrough.md) for the walkthrough of the current state.
 > Legend in the layout below: ✅ exists now, ⏳ planned.
 
 ## 1. Repository Layout
@@ -30,9 +30,11 @@ WeatherDataExplorer/
 │   ├── test_loaders.py            # ⏳ CSV/JSON ingestion & malformed row tolerance
 │   └── test_analysis.py           # ⏳ Verification of math & aggregations
 │
-├── docs/                          # ⏳
-│   ├── design_document.md         # Architecture summary & design choices
-│   └── class_diagram.png          # UML diagram (Measurement, WeatherStation, Loaders, Report)
+├── docs/
+│   ├── walkthrough.md             # ✅ Tour of the current codebase (update after each phase)
+│   ├── roadmap.md                 # ✅ This file
+│   ├── design_document.md         # ⏳ Architecture summary & design choices
+│   └── class_diagram.png          # ⏳ UML diagram (Measurement, WeatherStation, Loaders, Report)
 │
 ├── .vscode/settings.json          # ✅ Use .venv interpreter, hide cache folders
 ├── main.py                        # ✅ simple demo script; ⏳ becomes argparse CLI (multi-city support)
@@ -40,9 +42,7 @@ WeatherDataExplorer/
 ├── requirements.txt               # ✅ numpy, matplotlib, pytest
 ├── .gitignore                     # ✅ Ignores .venv, __pycache__, output files, .pytest_cache
 ├── README.md                      # ✅ minimal; ⏳ full setup, CLI flags, sample commands
-├── Task.md                        # ✅ Original assignment
-├── pyproject.md                   # ✅ Walkthrough of current state (update after each phase)
-└── plan.md                        # ✅ This roadmap
+└── Task.md                        # ✅ Original assignment
 ```
 
 ## 2. Module Blueprint & Technical Mapping
@@ -93,7 +93,7 @@ Polymorphic loaders satisfying inheritance and multi-format requirements:
 
 ### `weather/analysis.py`
 
-Currently a placeholder `WeatherAnalyzer` class (`average_temperature`, `hottest_day`, `coldest_day`) used by `main.py`. In Phase 3, replace it with a pure functional layer combining the Standard Library and NumPy (and update `main.py`/`__init__.py` exports and the pyproject.md walkthrough accordingly):
+Currently a placeholder `WeatherAnalyzer` class (`average_temperature`, `hottest_day`, `coldest_day`) used by `main.py`. In Phase 3, replace it with a pure functional layer combining the Standard Library and NumPy (and update `main.py`/`__init__.py` exports and the walkthrough.md accordingly):
 
 - **`statistics` module:** Computes high-level scalar summaries for textual reports (`statistics.mean`, `statistics.median`, `statistics.stdev` on valid temperature arrays).
 - **`numpy`:** Vectorized computations on arrays:
