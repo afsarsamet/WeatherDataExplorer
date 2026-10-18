@@ -1,11 +1,20 @@
+"""Weather Data Explorer — quick demo entry point.
+
+This will be replaced with a full ``argparse``-driven CLI in Phase 5.
+For now it loads the Budapest dataset and prints basic statistics to
+verify the Phase 1 skeleton works end-to-end.
+"""
 
 from pathlib import Path
 
+from weather.logger import setup_logging
 from weather.loaders import CSVLoader
 from weather.analysis import WeatherAnalyzer
 
 
-def main():
+def main() -> None:
+    setup_logging()
+
     data_path = Path(__file__).resolve().parent / "data" / "budapest.csv"
 
     station = CSVLoader().load(data_path, "Budapest")
@@ -17,14 +26,14 @@ def main():
     print("=== Weather Data Explorer ===")
     print(f"City: {station.city}")
     print(f"Records: {len(station)}")
-
+    print(f"Date range: {station.measurements[0].date} → "
+          f"{station.measurements[-1].date}")
+    print()
     print(f"Average temperature: {analyzer.average_temperature():.2f} °C")
     print(f"Highest temperature: {hottest.tmax} °C ({hottest.date})")
-    print(f"Lowest temperature: {coldest.tmin} °C ({coldest.date})")
+    print(f"Lowest temperature:  {coldest.tmin} °C ({coldest.date})")
 
-    missing_rain = sum(
-        m.prcp is None for m in station.measurements
-    )
+    missing_rain = sum(1 for m in station if m.prcp is None)
     print(f"Missing precipitation values: {missing_rain}")
 
 
