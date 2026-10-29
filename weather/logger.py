@@ -14,11 +14,15 @@ def setup_logging(verbose: bool = False) -> None:
     Parameters
     ----------
     verbose : bool, optional
-        When *True* the level is set to ``DEBUG``; otherwise ``INFO``.
+        When *True*, the ``weather`` loggers also show ``DEBUG`` messages.
+        Third-party libraries (e.g. Matplotlib) always stay at ``INFO`` so
+        their own debug output does not flood the terminal.
     """
-    level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
-        level=level,
+        level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%H:%M:%S",
+    )
+    logging.getLogger("weather").setLevel(
+        logging.DEBUG if verbose else logging.INFO
     )

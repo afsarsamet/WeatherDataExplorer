@@ -76,6 +76,7 @@ class BaseLoader(ABC):
 
         measurements: list[Measurement] = []
 
+        logger.debug("Reading %s with %s", path.name, type(self).__name__)
         try:
             rows = self.read_rows(path)
         except (OSError, UnicodeDecodeError) as exc:
