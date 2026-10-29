@@ -1,7 +1,7 @@
 # Weather Data Explorer: Project Guide
 
 > The single reference for the project: the task, the design, the data, and what is done and what is left.
-> Last updated: 2026-10-29 · **Phases 1–3 done ✅ · Phases 4–5 to do ⏳**
+> Last updated: 2026-10-29 · **Phases 1–4 done ✅ · Phase 5 to do ⏳**
 
 **Guiding rule:** build the smallest clean version that fully meets [Task.md](../Task.md). Every module, class and function exists because a line of the task asks for it, as mapped in [§3](#3-requirements-traceability). Anything not in that map is out of scope.
 
@@ -37,17 +37,17 @@ The original text is in [Task.md](../Task.md). Here it is as checkable requireme
 
 | ID | Where it is met | Status |
 |---|---|---|
-| R1 | `Measurement`, `WeatherStation` (models.py); `Report` (report.py) | ✅ / ⏳ Phase 4 |
+| R1 | `Measurement`, `WeatherStation` (models.py); `Report` (report.py) | ✅ |
 | R2 | `CSVLoader`, `JSONLoader`, `load_station()` (loaders.py); `budapest.csv`, `debrecen.csv`, `vienna.json` | ✅ |
 | R3 | `WeatherDataError`, `MalformedDataError`; `Measurement` validates itself; loaders skip and log bad rows; CLI reports fatal errors | ✅ / ⏳ Phase 5 (CLI) |
 | R4 | `monthly_averages`, `extremes`, `temperature_trend`, `anomaly_days` (analysis.py) | ✅ |
 | R5 | dataclass `Measurement`; dunders `__post_init__`, `__lt__`, `__repr__`, `__len__`, `__iter__`; `BaseLoader(ABC)` → `CSVLoader`, `JSONLoader` | ✅ |
 | R6 | comprehensions in `filter_dates`, `extremes`, `monthly_averages`, `anomaly_days`; `defaultdict` in `monthly_averages`; `Counter` in `day_counts`; `itertools.groupby` in `longest_dry_spell` | ✅ |
 | R7 | `csv`, `json` (loaders); `pathlib` (loaders, main); `datetime` (models, loaders); `statistics` (analysis); `argparse` (main.py) | ✅ / ⏳ Phase 5 (`argparse`) |
-| R8 | NumPy in `_month_stats`, `anomaly_days` (vectorized z-scores), `temperature_trend` (`np.polyfit`); heatmap grid | ✅ / ⏳ Phase 4 |
-| R9 | `plot_monthly_temperature` (line), `plot_temperature_histogram` (histogram), `plot_monthly_heatmap` (heatmap) | ⏳ Phase 4 |
-| R10 | `main.py`: positional files, `--start`/`--end`, `-o report.pdf\|.png` | ⏳ Phase 5 |
-| R11 | `test_models.py`, `test_loaders.py`, `test_analysis.py` ✅; `test_report.py` ⏳ | ✅ / ⏳ Phases 4–5 |
+| R8 | NumPy in `_month_stats`, `anomaly_days` (vectorized z-scores), `temperature_trend` (`np.polyfit`); shared histogram bins, heatmap grid | ✅ |
+| R9 | `plot_monthly_temperature` (line), `plot_temperature_histogram` (histogram), `plot_monthly_heatmap` (heatmap) | ✅ |
+| R10 | `Report.save` writes PDF/PNG ✅; `main.py`: positional files, `--start`/`--end`, `-o report.pdf\|.png` ⏳ | ✅ / ⏳ Phase 5 (CLI) |
+| R11 | `test_models.py`, `test_loaders.py`, `test_analysis.py`, `test_visualization.py`, `test_report.py` ✅; `test_main.py` ⏳ | ✅ / ⏳ Phase 5 (CLI) |
 | R12 | `docs/design.md` with a Mermaid class diagram | ⏳ Phase 5 |
 
 ---
@@ -87,18 +87,20 @@ WeatherDataExplorer/
 │   ├── models.py               ✅ Measurement, WeatherStation
 │   ├── loaders.py              ✅ parse_row, BaseLoader, CSVLoader, JSONLoader, load_station
 │   ├── analysis.py             ✅ statistics functions
-│   ├── visualization.py        ⏳ Phase 4: line, histogram, heatmap
-│   └── report.py               ⏳ Phase 4: Report
+│   ├── visualization.py        ✅ line, histogram, heatmap figures
+│   └── report.py               ✅ Report: summary text, figures, PDF/PNG output
 ├── tests/
 │   ├── test_models.py          ✅ 25 tests
 │   ├── test_loaders.py         ✅ 25 tests
 │   ├── test_analysis.py        ✅ 22 tests
-│   └── test_report.py          ⏳ Phases 4–5: report output + CLI end-to-end
+│   ├── test_visualization.py   ✅ 9 tests
+│   ├── test_report.py          ✅ 11 tests
+│   └── test_main.py            ⏳ Phase 5: CLI end-to-end
 ├── docs/
 │   ├── projectGuide.md         ✅ this guide
 │   └── design.md               ⏳ Phase 5: deliverable design document
-├── output/                     ⏳ Phase 5: generated reports (git-ignored)
-├── main.py                     ✅ demo (prints stats for all cities) → ⏳ Phase 5: argparse CLI
+├── output/                     ✅ generated reports (git-ignored)
+├── main.py                     ✅ demo (prints summary, writes output/report.pdf) → ⏳ Phase 5: argparse CLI
 ├── pyproject.toml              ✅ pytest config (testpaths, pythonpath)
 ├── requirements.txt            ✅ numpy, matplotlib, pytest
 ├── README.md                   ✅ setup + usage (⏳ Phase 5: full version)
@@ -144,8 +146,9 @@ classDiagram
     }
     class Report {
         +stations: list~WeatherStation~
+        +__repr__() str
         +summary_text() str
-        +figures() list~Figure~
+        +figures() dict~str, Figure~
         +save(path) list~Path~
     }
     class WeatherDataError
@@ -216,35 +219,36 @@ Every function takes a non-empty `WeatherStation`. The loaders and the CLI guara
 - **Frost day:** `tmin < 0`. **Hot day:** `tmax ≥ 30`. **Rainy day:** `prcp ≥ 1.0` mm. A single day can count in several categories.
 - **Dry spell:** consecutive records with `prcp == 0`. A missing `prcp` is unknown, not dry, so it ends the run.
 
-#### `visualization.py` ⏳ Phase 4
+#### `visualization.py` ✅
 - Every function returns a `matplotlib.figure.Figure`.
 - Build figures with `Figure()` directly, not `pyplot`. There's then no GUI backend and no global state, so tests run headless.
 
 | Function | Plot |
 |---|---|
 | `plot_monthly_temperature(stations)` | **Line**: `monthly_averages` over time, one line per city (x = `date(year, month, 1)`) |
-| `plot_temperature_histogram(stations)` | **Histogram**: daily `tavg`, overlaid per city (`alpha=0.5`) |
-| `plot_monthly_heatmap(station)` | **Heatmap**: years × 12 months of mean `tavg` (`imshow` + colorbar), one per city. Months without data stay `np.nan` and are drawn blank. |
+| `plot_temperature_histogram(stations)` | **Histogram**: daily `tavg`, one step outline per city on shared bins (`np.histogram_bin_edges`) |
+| `plot_monthly_heatmap(station)` | **Heatmap**: years × 12 months of mean `tavg` (`imshow` + colorbar, value printed in each cell), one per city. Months without data stay `np.nan` and are drawn blank. |
 
-#### `report.py` ⏳ Phase 4
+#### `report.py` ✅
 
 ```python
 class Report:
-    def __init__(self, stations: list[WeatherStation]) -> None: ...
-    def summary_text(self) -> str:
-        # one block per city: period, records, summary, extremes, trend,
-        # anomaly count, day counts, longest dry spell
-    def figures(self) -> list[Figure]:
-        # [summary page, line, histogram, one heatmap per city]
-    def save(self, path: Path) -> list[Path]:
+    def __init__(self, stations: list[WeatherStation]) -> None
+        # at least one station, else WeatherDataError
+    def summary_text(self) -> str
+        # one aligned block per city: period, mean, median/stdev, hottest,
+        # coldest, wettest, trend, anomaly days, frost/hot/rainy, dry spell
+    def figures(self) -> dict[str, Figure]
+        # "summary", "temperature", "histogram", "heatmap_<city>" per city
+    def save(self, path: str | Path) -> list[Path]
         # .pdf → one multi-page PDF (PdfPages)
-        # .png → one PNG per figure: <stem>_1_summary.png, <stem>_2_line.png, …
-        # any other suffix → WeatherDataError
+        # .png → one PNG per figure: <stem>_<figure name>.png
+        # creates missing folders; other suffix or write error → WeatherDataError
 ```
 
-- The summary page is a `Figure` with `fig.text(...)` in a monospace font, so PDF and PNG share one code path.
-- In the summary, a trend of `None` is shown as `n/a (needs 2+ years)`, and a missing wettest day as `n/a`.
-- Close the figures after saving them.
+- **Summary page:** an A4 `Figure` with the title and `summary_text()` in monospace (`fig.text`), so PDF and PNG output share one code path.
+- **Missing values:** a trend of `None` shows as `n/a (needs 2+ years)`, and a missing wettest day as `n/a`.
+- **Size:** with the three bundled cities the PDF is 6 pages (about 75 KB) and takes about 1.5 s to build.
 
 #### `main.py` ⏳ Phase 5
 
@@ -255,7 +259,7 @@ python main.py FILE [FILE ...] [--start YYYY-MM-DD] [--end YYYY-MM-DD]
 
 - **Files:** positional. Each file is one city, loaded with `load_station`.
 - **Dates:** `--start`/`--end` use `type=date.fromisoformat`. Each station is cut to the period with `filter_dates`. A station left empty raises `WeatherDataError("No data for <city> in the selected period")`.
-- **Output:** `-o/--output` defaults to `output/report.pdf`. The suffix (`.pdf` or `.png`) chooses the format, and missing parent folders are created.
+- **Output:** `-o/--output` defaults to `output/report.pdf` and is passed to `Report.save`, so the suffix (`.pdf` or `.png`) chooses the format.
 - **Logging:** `-v` turns on DEBUG logging.
 - **Structure:** write it as `main(argv: list[str] | None = None) -> int` so tests can call it. Catch `WeatherDataError`, log it as an error and return 1. End the file with `raise SystemExit(main())`.
 
@@ -265,6 +269,7 @@ python main.py FILE [FILE ...] [--start YYYY-MM-DD] [--end YYYY-MM-DD]
 |---|---|---|---|
 | Bad row: date, number, `nan`/`inf`, `tmin > tavg`, negative rain, missing field, non-object JSON record | `MalformedDataError` | the loader skips the row | `WARNING Skipping row 42: …` |
 | Missing file, unknown extension, unreadable or non-UTF-8 file, missing CSV columns, invalid JSON, no valid rows | `WeatherDataError` | `main()` | `ERROR …`, exit code 1 |
+| Report suffix not `.pdf`/`.png`, or the report can't be written | `WeatherDataError` | `main()` | `ERROR …`, exit code 1 |
 | Empty period after filtering | `WeatherDataError` | `main()` | `ERROR No data for X in the selected period`, exit code 1 |
 | Bad CLI argument or date | argparse | argparse | usage message, exit code 2 |
 
@@ -315,7 +320,7 @@ Each city's figures cover its own full date range. Debrecen and Vienna stop on 2
   ```
 - **Run:**
   - `pytest` runs the tests; `pyproject.toml` sets `testpaths` and `pythonpath`, so `tests/` needs no `__init__.py`.
-  - `python main.py` runs the demo.
+  - `python main.py` runs the demo: it prints the summary for all three cities and writes `output/report.pdf`.
 - **Conventions:**
   - Keep lines at 79 characters or fewer.
   - Use numpy-style docstrings.
@@ -335,8 +340,8 @@ Each city's figures cover its own full date range. Debrecen and Vienna stop on 2
 | 1 | Skeleton, exceptions, logging, models | ✅ done |
 | 2 | Loaders (CSV + JSON), validation, city data | ✅ done |
 | 3 | Analysis | ✅ done |
-| 4 | Plots and report | ⏳ next |
-| 5 | CLI, design document, README | ⏳ to do |
+| 4 | Plots and report | ✅ done |
+| 5 | CLI, design document, README | ⏳ next |
 
 ### Phase 1: Skeleton and models ✅
 - The package skeleton with `requirements.txt`, `pyproject.toml` and `.vscode/settings.json`.
@@ -354,28 +359,18 @@ Each city's figures cover its own full date range. Debrecen and Vienna stop on 2
 - `main.py` demo prints every statistic for all three cities.
 - `tests/test_analysis.py`: every function is tested against hand-made data with a known answer. That includes the per-month anomaly baseline, a seasons-only series giving a zero trend, and periods under 2 years giving no trend.
 
-### Phase 4: Plots and report ⏳ next
+### Phase 4: Plots and report ✅
+- `visualization.py`: line chart, histogram and heatmap, each returned as a `Figure`.
+- `report.py`: `Report` with `summary_text`, `figures` and `save` (PDF or PNGs). `Report` is exported from `weather`.
+- `.gitignore` ignores `output/`.
+- `main.py`: the demo builds a `Report` for all three cities, prints the summary and writes `output/report.pdf`. The PDF was checked by eye: summary page, line chart, histogram, and one heatmap per city.
+- `tests/test_visualization.py` checks figure structure: lines per city, points per month, shared histogram outlines, heatmap grid shape, and `NaN` for missing months.
+- `tests/test_report.py` checks the summary blocks and `n/a` cases, figure names, the PDF and PNG files written, folder creation, a bad suffix and a write error.
 
-**Build**
-- `weather/visualization.py`: `plot_monthly_temperature`, `plot_temperature_histogram`, `plot_monthly_heatmap` (§4.4).
-- `weather/report.py`: `Report` with `summary_text`, `figures` and `save` (§4.4).
-- Export `Report` from `weather/__init__.py`.
-
-**Test** (`tests/test_report.py`)
-- `summary_text()` contains every city name.
-- `figures()` returns 3 + N figures, where N is the number of cities.
-- `save("x.pdf")` writes one non-empty file.
-- `save("x.png")` writes one PNG per figure.
-- `save("x.txt")` raises `WeatherDataError`.
-- Check that the figures exist; don't test their pixels.
-
-**Done when** a PDF for all three cities opens and looks right by eye.
-
-### Phase 5: CLI, design document, README ⏳
+### Phase 5: CLI, design document, README ⏳ next
 
 **Build**
 - `main.py`: the argparse CLI (§4.4).
-- `.gitignore`: add `output/`.
 - `README.md`:
   - Python ≥ 3.10;
   - setup;
@@ -389,14 +384,15 @@ Each city's figures cover its own full date range. Debrecen and Vienna stop on 2
   - the error-handling table (§4.5);
   - how to run the tool and its tests.
 
-**Test** (in `tests/test_report.py`)
+**Test** (`tests/test_main.py`)
 - `main([csv, "-o", tmp/"report.pdf"])` returns 0 and creates the file.
+- `-o x.png` writes one PNG per figure.
 - A missing file returns 1.
 - An empty period returns 1.
 
 **Done when** the acceptance checklist below passes.
 
-**Team of 2:** in Phase 4, one person can write `visualization.py` while the other writes `report.py` and its tests; they meet at `figures()`. Do Phase 5 together.
+**Team of 2:** one person can write the CLI and `test_main.py` while the other writes `design.md` and the README.
 
 ---
 
@@ -409,7 +405,7 @@ python main.py data/budapest.csv --start 2024-01-01 --end 2024-12-31 -o output/b
 python main.py data/missing.csv
 ```
 
-The first command must pass. The second must write `output/report.pdf`, and the third must write one PNG per figure. The fourth must print a single `ERROR` line and exit with code 1.
+The first command must pass. The second must write `output/report.pdf`, and the third must write one PNG per figure (`output/bp2024_summary.png`, …). The fourth must print a single `ERROR` line and exit with code 1.
 
 - [ ] R1–R12 are all met (§3)
 - [ ] The PDF has a summary page for each city, a line chart, a histogram, and one heatmap per city

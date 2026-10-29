@@ -3,7 +3,7 @@
 Public API re-exported here for convenient imports::
 
     from weather import load_station, CSVLoader, JSONLoader
-    from weather import Measurement, WeatherStation
+    from weather import Measurement, WeatherStation, Report
     from weather import WeatherDataError, MalformedDataError
     from weather import setup_logging
     from weather import analysis          # analysis.summary(station), ...
@@ -13,6 +13,7 @@ from weather.exceptions import MalformedDataError, WeatherDataError
 from weather.loaders import BaseLoader, CSVLoader, JSONLoader, load_station
 from weather.logger import setup_logging
 from weather.models import Measurement, WeatherStation
+from weather.report import Report
 
 __all__ = [
     "BaseLoader",
@@ -21,6 +22,7 @@ __all__ = [
     "load_station",
     "Measurement",
     "WeatherStation",
+    "Report",
     "WeatherDataError",
     "MalformedDataError",
     "setup_logging",
