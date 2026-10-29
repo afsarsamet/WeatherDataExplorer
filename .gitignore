@@ -1,6 +1,9 @@
 # Generated reports
 output/
 
+# macOS folder metadata
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
