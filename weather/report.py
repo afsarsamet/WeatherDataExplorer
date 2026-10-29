@@ -6,6 +6,7 @@ PDF and a set of PNGs are written from the same list of figures.
 """
 
 import logging
+from collections import Counter
 from pathlib import Path
 
 from matplotlib.backends.backend_pdf import PdfPages
@@ -23,6 +24,7 @@ from .visualization import (
 logger = logging.getLogger(__name__)
 
 FORMATS = (".pdf", ".png")
+CITIES_PER_PAGE = 5  # city summaries that fit on one A4 summary page
 
 
 class Report:
@@ -32,11 +34,22 @@ class Report:
     ----------
     stations : list[WeatherStation]
         Non-empty stations, one per city, already cut to the wanted period.
+
+    Raises
+    ------
+    WeatherDataError
+        If *stations* is empty or names the same city twice.
     """
 
     def __init__(self, stations: list[WeatherStation]) -> None:
         if not stations:
             raise WeatherDataError("A report needs at least one station")
+        counts = Counter(station.city for station in stations)
+        repeated = [city for city, n in counts.items() if n > 1]
+        if repeated:
+            raise WeatherDataError(
+                f"City given more than once: {', '.join(repeated)}"
+            )
         self.stations = stations
 
     def __repr__(self) -> str:
@@ -47,30 +60,33 @@ class Report:
 
     def summary_text(self) -> str:
         """Plain-text statistics, one block per city."""
-        return "\n\n".join(_city_summary(s) for s in self.stations)
+        return _summaries(self.stations)
 
     def figures(self) -> dict[str, Figure]:
-        """All report pages by name: summary, line chart, histogram, then
-        one heatmap per city (``heatmap_<city>``)."""
+        """All report pages by name: summary page(s), line chart, histogram,
+        then one heatmap per city (``heatmap_<city>``).
+
+        Summaries take one page per ``CITIES_PER_PAGE`` cities:
+        ``summary``, then ``summary_2``, ``summary_3``, ...
+        """
+        groups = [
+            self.stations[i:i + CITIES_PER_PAGE]
+            for i in range(0, len(self.stations), CITIES_PER_PAGE)
+        ]
+        summaries = {
+            "summary" if n == 1 else f"summary_{n}": _summary_page(group)
+            for n, group in enumerate(groups, start=1)
+        }
         heatmaps = {
             f"heatmap_{station.city.lower()}": plot_monthly_heatmap(station)
             for station in self.stations
         }
         return {
-            "summary": self._summary_page(),
+            **summaries,
             "temperature": plot_monthly_temperature(self.stations),
             "histogram": plot_temperature_histogram(self.stations),
             **heatmaps,
         }
-
-    def _summary_page(self) -> Figure:
-        """An A4 page holding the title and ``summary_text`` in monospace."""
-        fig = Figure(figsize=(8.27, 11.69))
-        fig.text(0.07, 0.95, "Weather Data Explorer report",
-                 fontsize=16, weight="bold", va="top")
-        fig.text(0.07, 0.91, self.summary_text(),
-                 family="monospace", fontsize=9, va="top")
-        return fig
 
     # -- output ------------------------------------------------------------
 
@@ -114,6 +130,21 @@ class Report:
 
         logger.info("Wrote %s", ", ".join(str(p) for p in written))
         return written
+
+
+def _summary_page(stations: list[WeatherStation]) -> Figure:
+    """An A4 page holding the title and the stations' summaries."""
+    fig = Figure(figsize=(8.27, 11.69))
+    fig.text(0.07, 0.95, "Weather Data Explorer report",
+             fontsize=16, weight="bold", va="top")
+    fig.text(0.07, 0.91, _summaries(stations),
+             family="monospace", fontsize=9, va="top")
+    return fig
+
+
+def _summaries(stations: list[WeatherStation]) -> str:
+    """The summary blocks of *stations*, separated by blank lines."""
+    return "\n\n".join(_city_summary(station) for station in stations)
 
 
 def _city_summary(station: WeatherStation) -> str:

@@ -1,9 +1,10 @@
 """Unit tests for weather.report — Report content and file output.
 
 Covers:
-- construction: needs at least one station, readable repr
+- construction: needs at least one station, no repeated city, readable repr
 - summary_text: one block per city, every statistic, n/a cases
-- figures: named pages in order, one heatmap per city
+- figures: named pages in order, one heatmap per city, summary split
+  across pages when there are many cities
 - save: PDF, one PNG per figure, missing folders, bad suffix, write errors
 """
 
@@ -15,7 +16,7 @@ from matplotlib.figure import Figure
 
 from weather.exceptions import WeatherDataError
 from weather.models import Measurement, WeatherStation
-from weather.report import Report
+from weather.report import CITIES_PER_PAGE, Report
 
 
 def make_station(
@@ -41,6 +42,10 @@ class TestReportContent:
     def test_needs_a_station(self) -> None:
         with pytest.raises(WeatherDataError, match="at least one"):
             Report([])
+
+    def test_rejects_repeated_city(self) -> None:
+        with pytest.raises(WeatherDataError, match="more than once: Alpha"):
+            Report([make_station("Alpha", 5), make_station("Alpha", 5)])
 
     def test_repr(self, report: Report) -> None:
         assert repr(report) == "Report(cities=['Alpha', 'Beta'])"
@@ -69,6 +74,17 @@ class TestReportContent:
         assert list(figures) == ["summary", "temperature", "histogram",
                                  "heatmap_alpha", "heatmap_beta"]
         assert all(isinstance(f, Figure) for f in figures.values())
+
+    def test_many_cities_split_summary_pages(self) -> None:
+        cities = [f"City{n}" for n in range(1, CITIES_PER_PAGE + 2)]
+        figures = Report([make_station(c, 5) for c in cities]).figures()
+        page_text = {
+            name: figures[name].texts[1].get_text()
+            for name in ("summary", "summary_2")
+        }
+        assert "summary_3" not in figures
+        assert all(c in page_text["summary"] for c in cities[:-1])
+        assert page_text["summary_2"].startswith(cities[-1])
 
 
 class TestReportSave:
