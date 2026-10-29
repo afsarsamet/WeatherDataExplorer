@@ -1,7 +1,7 @@
 # Weather Data Explorer: Project Guide
 
 > **This is the single source of truth for the project.** It replaced the earlier `roadmap.md`, `review.md` and `walkthrough.md` (deleted).
-> Last updated: 2026-10-29 · Current state: **Phase 1 done**, Phases 2–5 to go.
+> Last updated: 2026-10-29 · Current state: **Phases 1–2 done**, Phases 3–5 to go.
 
 **The one rule:** build the MVP that satisfies [Task.md](../Task.md), and nothing more. Every file, class and function below exists because a line of the task asks for it ([§3](#3-requirements-traceability) maps each one back). If something is not in that table, we don't build it.
 
@@ -39,35 +39,40 @@ Each row shows where a requirement is met, and the phase that delivers it.
 | ID | Where it is satisfied | Phase |
 |---|---|---|
 | R1 | `Measurement`, `WeatherStation` (models.py), `Report` (report.py) | 1 ✅ / 4 |
-| R2 | `CSVLoader`, `JSONLoader`, `load_station()` (loaders.py); 3 city files in `data/` | 1 ✅ / 2 |
-| R3 | `WeatherDataError`, `MalformedDataError`; loader skips bad rows and logs them; CLI logs fatal errors | 1 ✅ / 2 / 5 |
+| R2 | `CSVLoader`, `JSONLoader`, `load_station()` (loaders.py); 3 city files in `data/` | 1–2 ✅ |
+| R3 | `WeatherDataError`, `MalformedDataError`; loader skips bad rows and logs them; CLI logs fatal errors | 1–2 ✅ / 5 |
 | R4 | `monthly_averages`, `extremes`, `temperature_trend`, `anomaly_days` (analysis.py) | 3 |
-| R5 | dataclass `Measurement`; dunders `__lt__`, `__repr__`, `__len__`, `__iter__`; `BaseLoader(ABC)` → `CSVLoader`, `JSONLoader` | 1 ✅ / 2 |
+| R5 | dataclass `Measurement`; dunders `__lt__`, `__repr__`, `__len__`, `__iter__`; `BaseLoader(ABC)` → `CSVLoader`, `JSONLoader` | 1–2 ✅ |
 | R6 | list comprehension in `filter_dates`; `defaultdict` + dict comprehension in `monthly_averages`; `Counter` in `day_counts`; `itertools.groupby` in `longest_dry_spell` | 1 ✅ / 3 |
-| R7 | `csv`/`json` (loaders), `pathlib` (everywhere), `datetime` (models, CLI), `statistics` (analysis), `argparse` (main.py) | 1 ✅ / 2 / 3 / 5 |
+| R7 | `csv`/`json` (loaders), `pathlib` (everywhere), `datetime` (models, CLI), `statistics` (analysis), `argparse` (main.py) | 1–2 ✅ / 3 / 5 |
 | R8 | NumPy for trend (`np.polyfit`), anomaly z-scores, histogram/heatmap arrays | 3 / 4 |
 | R9 | `plot_monthly_temperature` (line), `plot_temperature_histogram` (hist), `plot_monthly_heatmap` (heatmap) | 4 |
 | R10 | `main.py`: positional files, `--start`/`--end`, `--output report.pdf\|.png` | 5 |
-| R11 | `tests/test_models.py` ✅, `test_loaders.py`, `test_analysis.py`, `test_report.py` | every phase |
+| R11 | `tests/test_models.py` ✅, `test_loaders.py` ✅, `test_analysis.py`, `test_report.py` | every phase |
 | R12 | `docs/design.md`, with a Mermaid class diagram | 5 |
 
 ---
 
-## 4. Current state of the repo (after Phase 1, commit `2d56ff2`)
+## 4. Current state of the repo (after Phase 2)
 
 ```
 WeatherDataExplorer/
-├── data/budapest.csv          ✅ 1,827 daily rows, 2021-10-17 → 2026-10-17
+├── data/
+│   ├── budapest.csv           ✅ 1,827 daily rows, 2021-10-17 → 2026-10-17
+│   ├── debrecen.csv           ✅ 1,614 daily rows, 2021-10-17 → 2026-03-18
+│   └── vienna.json            ✅ 1,614 daily records, 2021-10-17 → 2026-03-18 (1 invalid row, skipped)
 ├── weather/
 │   ├── __init__.py            ✅ re-exports the public API
 │   ├── exceptions.py          ✅ WeatherDataError, MalformedDataError(line_number, reason)
 │   ├── logger.py              ✅ setup_logging(verbose)
-│   ├── models.py              ✅ Measurement (frozen/slots dataclass), WeatherStation
-│   ├── loaders.py             ✅ CSVLoader (header check, skips + logs bad rows)
+│   ├── models.py              ✅ Measurement (frozen/slots dataclass, validates itself), WeatherStation
+│   ├── loaders.py             ✅ parse_row, BaseLoader(ABC) → CSVLoader, JSONLoader; load_station()
 │   └── analysis.py            ⚠️ placeholder WeatherAnalyzer (gets replaced in Phase 3)
-├── tests/test_models.py       ✅ 21 tests, all passing
+├── tests/
+│   ├── test_models.py         ✅ 23 tests
+│   └── test_loaders.py        ✅ 23 tests
 ├── docs/projectGuide.md       ✅ this guide
-├── main.py                    ⚠️ hard-coded demo (becomes the CLI in Phase 5)
+├── main.py                    ⚠️ demo on Budapest via load_station (becomes the CLI in Phase 5)
 ├── pyproject.toml             ✅ pytest config (testpaths, pythonpath)
 ├── requirements.txt           ✅ numpy, matplotlib, pytest
 ├── .vscode/settings.json      ✅ uses .venv, hides caches
@@ -75,13 +80,14 @@ WeatherDataExplorer/
 ```
 
 **Verified on 2026-10-29:**
-- `pytest`: **21 passed**.
-- `python main.py` loads 1,827 records with **0 skipped**. Mean temperature 12.85 °C, max 39.1 °C (2026-08-05), min −10.7 °C (2026-01-09).
+- `pytest`: **46 passed**.
+- `python main.py` loads Budapest's 1,827 records with **0 skipped**. Mean temperature 12.85 °C, max 39.1 °C (2026-08-05), min −10.7 °C (2026-01-09).
+- `load_station` loads Debrecen (1,614 records, 0 skipped) and Vienna (1,613 records). The one skipped Vienna row is a real data error: `tmin=11.8 > tavg=9.3`. It is logged as a warning.
 - **Data quality:**
-  - `tavg`, `tmin` and `tmax` are complete.
-  - `prcp` is missing on 247 days, which become `None`.
-  - `snow` is empty in every row.
+  - `tavg`, `tmin` and `tmax` are complete for all three cities.
+  - `prcp` is missing on 247 days for Budapest, 223 for Debrecen and 17 for Vienna. Missing values become `None`.
   - There are no duplicate dates.
+  - **Debrecen and Vienna end on 2026-03-18**, because that's where Meteostat's bulk files stop. Budapest runs to 2026-10-17. The period where all three overlap is **2021-10-17 → 2026-03-18**.
 - **Environment:** `.venv` has Python 3.13, numpy 2.5, matplotlib 3.11 and pytest 9.1. **The code needs Python ≥ 3.10** because it uses `slots=True` and `X | Y` types.
 
 **What is good and stays:**
@@ -91,11 +97,10 @@ WeatherDataExplorer/
 - The `utf-8-sig` BOM handling.
 - The `REQUIRED_COLUMNS` header check.
 - The pytest config, so `tests/` needs no `__init__.py`.
+- `BaseLoader.load` holds all the shared loading steps, so each subclass only implements `read_rows`.
 
-**What is wrong or missing:**
-- Only one city, and no JSON loader or file (R2).
+**What is still missing:**
 - No analysis (R4), plots (R9), report or CLI (R10).
-- Date and number parse errors raise a bare `ValueError` instead of `MalformedDataError` (R3).
 - `.gitignore` doesn't ignore generated reports.
 - The README has no data source and doesn't state the Python version.
 
@@ -124,20 +129,20 @@ Classes are used where they model something: a measurement, a station, a family 
 WeatherDataExplorer/
 ├── data/
 │   ├── budapest.csv           # existing
-│   ├── debrecen.csv           # NEW: second city, CSV
-│   └── vienna.json            # NEW: third city, JSON (exercises JSONLoader)
+│   ├── debrecen.csv           # second city, CSV
+│   └── vienna.json            # third city, JSON (exercises JSONLoader)
 ├── weather/
 │   ├── __init__.py            # public API
 │   ├── exceptions.py          # unchanged
 │   ├── logger.py              # unchanged
-│   ├── models.py              # + validation in Measurement.__post_init__
+│   ├── models.py              # Measurement validates itself in __post_init__
 │   ├── loaders.py             # BaseLoader(ABC), CSVLoader, JSONLoader, load_station()
 │   ├── analysis.py            # pure functions (statistics, numpy, collections, itertools)
 │   ├── visualization.py       # NEW: line, histogram, heatmap → Figure
 │   └── report.py              # NEW: Report class → PDF or PNGs
 ├── tests/
-│   ├── test_models.py         # existing (+2 validation tests)
-│   ├── test_loaders.py        # NEW
+│   ├── test_models.py         # done
+│   ├── test_loaders.py        # done
 │   ├── test_analysis.py       # NEW
 │   └── test_report.py         # NEW: report output + CLI end-to-end
 ├── docs/
@@ -209,10 +214,9 @@ classDiagram
 
 ### 5.4 Module specifications
 
-#### `models.py` (one small change)
+#### `models.py` ✅
 
-- Add `__post_init__` to `Measurement`. It raises `ValueError` if `not tmin <= tavg <= tmax` or if `prcp < 0`. After this, an invalid `Measurement` can't exist, and the loader no longer repeats these checks.
-- Leave everything else as it is.
+- `Measurement.__post_init__` raises `ValueError` if `not tmin <= tavg <= tmax` or if `prcp < 0`. An invalid `Measurement` can't exist, so the loader doesn't repeat these checks.
 
 #### `exceptions.py`, `logger.py`
 
@@ -331,40 +335,27 @@ Each phase ends with `pytest` green and a commit or PR. Tests are written **in t
 ### Phase 1: Skeleton and models ✅ DONE
 The package skeleton, the exceptions and logger, `Measurement`, `WeatherStation`, a working `CSVLoader`, the demo `main.py` and 21 model tests.
 
-### Phase 2: Loading and validation (next)
+### Phase 2: Loading and validation ✅ DONE
 
-**Modify**
-- `models.py`: add `Measurement.__post_init__` validation.
+**What was done**
+- `models.py`: `Measurement.__post_init__` validates temperature order and rain.
 - `loaders.py`:
-  - Add `BaseLoader(ABC)`.
-  - Make `CSVLoader` inherit from it.
-  - Add `JSONLoader`, `parse_row()` and `load_station()`.
-  - Remove the inline checks that moved to `__post_init__`.
-- `__init__.py`: export the new names.
-- `main.py`: use `load_station`. It's still a demo at this point.
+  - `parse_row()` turns every bad record into a `MalformedDataError` with its line number. That covers a bad date, a bad number, a missing field, impossible values and, in JSON, a record that isn't an object.
+  - `BaseLoader(ABC)` holds `load()`, and `CSVLoader` and `JSONLoader` implement only `read_rows()`.
+  - `load_station()` picks the loader from the file extension and names the city from the file.
+- `__init__.py` exports the new names, and `main.py` uses `load_station`.
+- **Data:**
+  - `data/debrecen.csv` comes from Meteostat station 12882.
+  - `data/vienna.json` comes from station 11035 (Wien Hohe Warte). It's stored as a JSON array with one object per line, numeric values and `null` for missing ones.
+  - Both are taken from Meteostat's bulk daily files (`https://bulk.meteostat.net/v2/daily/<station>.csv.gz`) and cut to Budapest's start date. They aren't produced by a script in the repo.
+- **Tests:**
+  - `tests/test_loaders.py` has 23 tests covering `parse_row`, both loaders, every file-level error, skipping with logging, and dispatch and city naming in `load_station`.
+  - `tests/test_models.py` has +2 tests for validation.
 
-**Add**
-- `data/debrecen.csv`: a Meteostat daily export for the same period as Budapest.
-- `data/vienna.json`: a Meteostat daily export for the same period, converted to a JSON list of objects using the same keys as the CSV (one-off command below; don't commit a script for it).
-- `tests/test_loaders.py`. Write the input files to `tmp_path`, then check:
-  - a valid CSV and a valid JSON load the same measurements;
-  - a bad row is skipped, a valid row still loads, and a warning is logged (`caplog`);
-  - a missing file, a missing column, an unknown extension and invalid JSON each raise `WeatherDataError`;
-  - a file with zero valid rows raises `WeatherDataError`;
-  - `load_station` takes the city name from the file name.
-- `tests/test_models.py`: add 2 tests checking that `__post_init__` rejects bad temperature order and negative rain.
+**Notes for later phases**
+- The cities don't cover the same dates (see §4). In the Phase 5 CLI examples, use dates inside 2021-10-17 → 2026-03-18 when comparing all three. The report should show each city's own date range.
 
-Converting a CSV export to JSON:
-
-```bash
-python -c "import csv,json,sys; json.dump(list(csv.DictReader(open(sys.argv[1],encoding='utf-8-sig'))),open(sys.argv[2],'w'),indent=1)" vienna.csv data/vienna.json
-```
-
-> When you add each new city, check how many rows it skips. Smaller Meteostat stations often have an empty `tavg`. If more than a few percent of rows are skipped, pick a bigger station rather than writing fallback logic.
-
-**Done when:** all 3 data files load with few or no skipped rows, and `pytest` is green.
-
-### Phase 3: Analysis
+### Phase 3: Analysis (next)
 
 **Modify**
 - Rewrite `analysis.py` as the 7 functions in §5.4, plus `_month_stats`.

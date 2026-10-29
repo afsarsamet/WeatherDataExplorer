@@ -104,6 +104,14 @@ class TestMeasurement:
         b = Measurement(datetime.date(2024, 1, 1), 5.0, 0.0, 10.0, 2.0)
         assert a != b
 
+    def test_rejects_bad_temperature_order(self) -> None:
+        with pytest.raises(ValueError, match="Temperature order"):
+            Measurement(datetime.date(2024, 1, 1), 20.0, 0.0, 10.0)
+
+    def test_rejects_negative_precipitation(self) -> None:
+        with pytest.raises(ValueError, match="Negative precipitation"):
+            Measurement(datetime.date(2024, 1, 1), 5.0, 0.0, 10.0, -1.0)
+
 
 # ---------------------------------------------------------------------------
 # WeatherStation tests

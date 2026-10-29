@@ -37,6 +37,18 @@ class Measurement:
     tmax: float
     prcp: float | None = None
 
+    # -- validation -------------------------------------------------------
+
+    def __post_init__(self) -> None:
+        """Reject physically impossible readings so no invalid instance exists."""
+        if not self.tmin <= self.tavg <= self.tmax:
+            raise ValueError(
+                f"Temperature order violated: tmin={self.tmin}, "
+                f"tavg={self.tavg}, tmax={self.tmax}"
+            )
+        if self.prcp is not None and self.prcp < 0:
+            raise ValueError(f"Negative precipitation: {self.prcp}")
+
     # -- comparison dunder for natural chronological sorting ------------
 
     def __lt__(self, other: object) -> bool:

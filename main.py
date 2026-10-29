@@ -2,13 +2,13 @@
 
 This will be replaced with a full ``argparse``-driven CLI in Phase 5.
 For now it loads the Budapest dataset and prints basic statistics to
-verify the Phase 1 skeleton works end-to-end.
+verify the package works end-to-end.
 """
 
 from pathlib import Path
 
 from weather.logger import setup_logging
-from weather.loaders import CSVLoader
+from weather.loaders import load_station
 from weather.analysis import WeatherAnalyzer
 
 
@@ -17,7 +17,7 @@ def main() -> None:
 
     data_path = Path(__file__).resolve().parent / "data" / "budapest.csv"
 
-    station = CSVLoader().load(data_path, "Budapest")
+    station = load_station(data_path)
     analyzer = WeatherAnalyzer(station)
 
     hottest = analyzer.hottest_day()

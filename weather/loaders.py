@@ -1,13 +1,16 @@
-"""CSV data loader for the weather package.
+"""Data loaders for the weather package.
 
-``CSVLoader`` reads a CSV file produced by Meteostat/NOAA, validates
-each row, and returns a ``WeatherStation`` populated with clean
-``Measurement`` objects.  Malformed rows are logged and skipped so that
-a handful of bad records never crash the pipeline.
+``BaseLoader`` holds the shared loading steps (file check, row parsing,
+skipping malformed rows, logging); subclasses only say how to read raw
+rows from their format.  ``CSVLoader`` and ``JSONLoader`` produce the same
+``WeatherStation`` from equivalent files, and ``load_station`` picks the
+right loader from the file extension.
 """
 
 import csv
+import json
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 
@@ -19,32 +22,51 @@ logger = logging.getLogger(__name__)
 REQUIRED_COLUMNS = frozenset({"date", "tavg", "tmin", "tmax"})
 
 
-class CSVLoader:
-    """Load weather observations from a CSV file.
+def parse_row(row: dict, line_no: int) -> Measurement:
+    """Convert one raw record into a ``Measurement``.
 
-    Expected columns (minimum): ``date``, ``tavg``, ``tmin``, ``tmax``.
-    An optional ``prcp`` column is read when present.
+    Values may be strings (CSV) or numbers/``null`` (JSON).  An empty or
+    missing ``prcp`` becomes ``None``.
+
+    Raises
+    ------
+    MalformedDataError
+        For any unparsable, missing, or physically impossible value.
     """
+    if not isinstance(row, dict):
+        raise MalformedDataError(line_no, "Record is not an object")
+
+    try:
+        rain = row.get("prcp")
+        has_rain = rain is not None and str(rain).strip() != ""
+        return Measurement(
+            date=datetime.fromisoformat(str(row["date"])).date(),
+            tavg=float(row["tavg"]),
+            tmin=float(row["tmin"]),
+            tmax=float(row["tmax"]),
+            prcp=float(rain) if has_rain else None,
+        )
+    except KeyError as exc:
+        raise MalformedDataError(line_no, f"Missing field {exc}") from exc
+    except (ValueError, TypeError) as exc:
+        raise MalformedDataError(line_no, str(exc)) from exc
+
+
+class BaseLoader(ABC):
+    """Template for loaders: subclasses implement ``read_rows`` only."""
+
+    #: Line/record number of the first data row (used in warnings).
+    FIRST_ROW = 1
 
     def load(self, file_path: str | Path, city: str) -> WeatherStation:
         """Parse *file_path* and return a ``WeatherStation`` for *city*.
 
-        Parameters
-        ----------
-        file_path : str | Path
-            Path to the source CSV.
-        city : str
-            Human-readable city label attached to the station.
-
-        Returns
-        -------
-        WeatherStation
-            A station populated with all valid rows.
+        Malformed rows are logged as warnings and skipped.
 
         Raises
         ------
         WeatherDataError
-            If the file is missing, lacks required columns, or yields
+            If the file is missing, unreadable for this format, or yields
             zero valid records.
         """
         path = Path(file_path)
@@ -54,6 +76,33 @@ class CSVLoader:
 
         measurements: list[Measurement] = []
 
+        rows = self.read_rows(path)
+        for line_no, row in enumerate(rows, start=self.FIRST_ROW):
+            try:
+                measurements.append(parse_row(row, line_no))
+            except MalformedDataError as exc:
+                logger.warning("Skipping row %d: %s", line_no, exc.reason)
+
+        if not measurements:
+            raise WeatherDataError(f"No valid records found in {path.name}")
+
+        logger.info(
+            "Loaded %d records for %s from %s",
+            len(measurements), city, path.name,
+        )
+        return WeatherStation(city, measurements)
+
+    @abstractmethod
+    def read_rows(self, path: Path) -> list[dict]:
+        """Return the raw records of *path* as a list of dicts."""
+
+
+class CSVLoader(BaseLoader):
+    """Load a CSV with ``date, tavg, tmin, tmax`` and optional ``prcp``."""
+
+    FIRST_ROW = 2  # line 1 is the header
+
+    def read_rows(self, path: Path) -> list[dict]:
         with path.open("r", encoding="utf-8-sig", newline="") as file:
             reader = csv.DictReader(file)
 
@@ -63,50 +112,40 @@ class CSVLoader:
                     f"Missing required CSV columns: {sorted(missing)}"
                 )
 
-            for line_no, row in enumerate(reader, start=2):
-                try:
-                    day = datetime.fromisoformat(row["date"]).date()
+            return list(reader)
 
-                    avg = float(row["tavg"])
-                    low = float(row["tmin"])
-                    high = float(row["tmax"])
 
-                    rainfall = row.get("prcp")
-                    rain = (
-                        float(rainfall)
-                        if rainfall and rainfall.strip()
-                        else None
-                    )
+class JSONLoader(BaseLoader):
+    """Load a JSON array of objects using the same keys as the CSV."""
 
-                    if not low <= avg <= high:
-                        raise MalformedDataError(
-                            line_no,
-                            f"Temperature order violated: "
-                            f"tmin={low}, tavg={avg}, tmax={high}",
-                        )
+    def read_rows(self, path: Path) -> list[dict]:
+        with path.open("r", encoding="utf-8") as file:
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError as exc:
+                raise WeatherDataError(
+                    f"Invalid JSON in {path.name}: {exc}"
+                ) from exc
 
-                    if rain is not None and rain < 0:
-                        raise MalformedDataError(
-                            line_no, f"Negative precipitation: {rain}"
-                        )
-
-                    measurements.append(
-                        Measurement(day, avg, low, high, rain)
-                    )
-
-                except MalformedDataError as exc:
-                    logger.warning("Skipping row %d: %s", line_no, exc.reason)
-
-                except (ValueError, TypeError, KeyError) as exc:
-                    logger.warning("Skipping row %d: %s", line_no, exc)
-
-        if not measurements:
+        if not isinstance(data, list):
             raise WeatherDataError(
-                f"No valid records found in {path.name}"
+                f"Expected a JSON array of records in {path.name}"
             )
+        return data
 
-        logger.info(
-            "Loaded %d records for %s from %s",
-            len(measurements), city, path.name,
+
+LOADERS: dict[str, type[BaseLoader]] = {".csv": CSVLoader, ".json": JSONLoader}
+
+
+def load_station(file_path: str | Path) -> WeatherStation:
+    """Load *file_path* with the loader matching its extension.
+
+    The city name comes from the file name: ``vienna.json`` → ``"Vienna"``.
+    """
+    path = Path(file_path)
+    loader_cls = LOADERS.get(path.suffix.lower())
+    if loader_cls is None:
+        raise WeatherDataError(
+            f"Unsupported file type: {path.suffix or path.name}"
         )
-        return WeatherStation(city, measurements)
+    return loader_cls().load(path, path.stem.title())
