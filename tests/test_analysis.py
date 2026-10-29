@@ -5,7 +5,7 @@ Covers:
 - extremes: hottest, coldest, wettest (ignoring and lacking prcp)
 - monthly_averages: grouping by (year, month), chronological order
 - anomaly_days: constant series, one outlier, per-month baseline, threshold
-- temperature_trend: constant, warming, cooling, seasonal-only, single day
+- temperature_trend: constant, warming, cooling, seasonal-only, too short
 - day_counts: each category, overlaps, boundaries
 - longest_dry_spell: runs, broken by rain or None, no dry days
 """
@@ -138,7 +138,7 @@ class TestAnomalyDays:
 class TestTemperatureTrend:
 
     def test_constant_series_is_flat(self) -> None:
-        trend = analysis.temperature_trend(daily([10.0] * 400))
+        trend = analysis.temperature_trend(daily([10.0] * 3 * 365))
         assert trend == pytest.approx(0.0, abs=1e-9)
 
     def test_warming_is_positive_and_close_to_rate(self) -> None:
@@ -157,17 +157,20 @@ class TestTemperatureTrend:
         assert analysis.temperature_trend(daily(temps)) < 0
 
     def test_seasons_alone_give_no_trend(self) -> None:
-        # 18 months where each month has its own fixed temperature: the
-        # warm summer at the end must not look like warming.
+        # 2.5 years where each month has its own fixed temperature: the
+        # extra warm half-year at the end must not look like warming.
         station = WeatherStation("Test", [
             day(datetime.date(2023 + (i // 12), i % 12 + 1, 1), 2.0 * (i % 12))
-            for i in range(18)
+            for i in range(30)
         ])
         trend = analysis.temperature_trend(station)
         assert trend == pytest.approx(0.0, abs=1e-9)
 
-    def test_single_day_is_zero(self) -> None:
-        assert analysis.temperature_trend(daily([5.0])) == 0.0
+    @pytest.mark.parametrize("days", [1, 31, 2 * 365 - 1])
+    def test_under_two_years_is_none(self, days: int) -> None:
+        # e.g. one July warming up 0.1 °C a day is not a yearly trend
+        temps = [20.0 + i / 10 for i in range(days)]
+        assert analysis.temperature_trend(daily(temps)) is None
 
 
 # ---------------------------------------------------------------------------

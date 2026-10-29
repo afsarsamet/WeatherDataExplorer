@@ -92,7 +92,7 @@ WeatherDataExplorer/
 ├── tests/
 │   ├── test_models.py          ✅ 25 tests
 │   ├── test_loaders.py         ✅ 25 tests
-│   ├── test_analysis.py        ✅ 20 tests
+│   ├── test_analysis.py        ✅ 22 tests
 │   └── test_report.py          ⏳ Phases 4–5: report output + CLI end-to-end
 ├── docs/
 │   ├── projectGuide.md         ✅ this guide
@@ -204,14 +204,15 @@ Every function takes a non-empty `WeatherStation`. The loaders and the CLI guara
 | `extremes(station)` | `{"hottest", "coldest", "wettest"}` → `Measurement` (`wettest` is `None` if there's no rain data) | `max`/`min` with `key=` |
 | `monthly_averages(station)` | `{(year, month): mean tavg}`, in date order | `defaultdict(list)` + dict comprehension |
 | `anomaly_days(station, threshold=2.0)` | `list[Measurement]` | NumPy vectorized z-scores |
-| `temperature_trend(station)` | °C per year | `np.polyfit` |
+| `temperature_trend(station)` | °C per year, or `None` if the data spans under 2 years | `np.polyfit` |
 | `day_counts(station)` | `Counter` of `"frost"`, `"hot"`, `"rainy"` | `Counter` + generator |
 | `longest_dry_spell(station)` | `int` (days) | `itertools.groupby` |
 
 **Definitions:**
-- **Seasonal baseline:** `_month_stats` gives each day the mean and standard deviation σ of `tavg` over all days in the same calendar month, across all years.
+- **Seasonal baseline:** `_month_stats` gives each day the mean and standard deviation σ of `tavg` over all days in the same calendar month, across all years of the station passed in. When the CLI selects a period, the baseline therefore comes from that period.
 - **Anomaly day:** `tavg` is more than `threshold` × σ away from its calendar month's mean. Because the baseline is per month, an ordinary cold January day isn't flagged.
 - **Trend:** subtract each day's month mean to remove the seasons, then fit a straight line against days since the first record. The slope × 365.25 gives °C per year. Removing the seasons keeps a partial year at either end from skewing the result.
+  - It needs the data to span at least `MIN_TREND_YEARS` = 2 years and returns `None` otherwise. With less, there's no year-to-year comparison: one July alone would read as "+3 °C/year".
 - **Frost day:** `tmin < 0`. **Hot day:** `tmax ≥ 30`. **Rainy day:** `prcp ≥ 1.0` mm. A single day can count in several categories.
 - **Dry spell:** consecutive records with `prcp == 0`. A missing `prcp` is unknown, not dry, so it ends the run.
 
@@ -221,9 +222,9 @@ Every function takes a non-empty `WeatherStation`. The loaders and the CLI guara
 
 | Function | Plot |
 |---|---|
-| `plot_monthly_temperature(stations)` | **Line**: `monthly_averages` over time, one line per city |
+| `plot_monthly_temperature(stations)` | **Line**: `monthly_averages` over time, one line per city (x = `date(year, month, 1)`) |
 | `plot_temperature_histogram(stations)` | **Histogram**: daily `tavg`, overlaid per city (`alpha=0.5`) |
-| `plot_monthly_heatmap(station)` | **Heatmap**: years × 12 months of mean `tavg` (`imshow` + colorbar), one per city |
+| `plot_monthly_heatmap(station)` | **Heatmap**: years × 12 months of mean `tavg` (`imshow` + colorbar), one per city. Months without data stay `np.nan` and are drawn blank. |
 
 #### `report.py` ⏳ Phase 4
 
@@ -242,6 +243,7 @@ class Report:
 ```
 
 - The summary page is a `Figure` with `fig.text(...)` in a monospace font, so PDF and PNG share one code path.
+- In the summary, a trend of `None` is shown as `n/a (needs 2+ years)`, and a missing wettest day as `n/a`.
 - Close the figures after saving them.
 
 #### `main.py` ⏳ Phase 5
@@ -350,7 +352,7 @@ Each city's figures cover its own full date range. Debrecen and Vienna stop on 2
 ### Phase 3: Analysis ✅
 - `analysis.py`: `summary`, `extremes`, `monthly_averages`, `anomaly_days`, `temperature_trend`, `day_counts` and `longest_dry_spell`, plus the `_month_stats` helper.
 - `main.py` demo prints every statistic for all three cities.
-- `tests/test_analysis.py`: every function is tested against hand-made data with a known answer. That includes the per-month anomaly baseline, and a seasons-only series giving a zero trend.
+- `tests/test_analysis.py`: every function is tested against hand-made data with a known answer. That includes the per-month anomaly baseline, a seasons-only series giving a zero trend, and periods under 2 years giving no trend.
 
 ### Phase 4: Plots and report ⏳ next
 

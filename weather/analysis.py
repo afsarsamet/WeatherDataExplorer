@@ -20,6 +20,7 @@ from .models import Measurement, WeatherStation
 FROST_TMIN = 0.0    # frost day: tmin below this (°C)
 HOT_TMAX = 30.0     # hot day: tmax at or above this (°C)
 RAINY_PRCP = 1.0    # rainy day: prcp at or above this (mm)
+MIN_TREND_YEARS = 2  # shortest span temperature_trend will fit
 
 
 def summary(station: WeatherStation) -> dict[str, float]:
@@ -90,18 +91,23 @@ def anomaly_days(
     return [m for m, flagged in zip(station, is_anomaly) if flagged]
 
 
-def temperature_trend(station: WeatherStation) -> float:
+def temperature_trend(station: WeatherStation) -> float | None:
     """Linear warming (+) or cooling (−) trend of ``tavg`` in °C per year.
 
     Each day's calendar-month mean is subtracted first to remove the
     seasons, then a straight line is fitted (``np.polyfit``) against days
     since the first record.  Removing the seasons keeps a partial year at
-    either end from skewing the slope.  Returns 0.0 for a single day.
+    either end from skewing the slope.
+
+    Returns ``None`` when the records span less than ``MIN_TREND_YEARS``:
+    a trend needs several years to compare, and a slope fitted inside one
+    season would be a meaningless °C-per-year figure.
     """
-    if len(station) < 2:
-        return 0.0
-    tavg, month_mean, _ = _month_stats(station)
     first = station.measurements[0].date
+    span_days = (station.measurements[-1].date - first).days
+    if span_days < MIN_TREND_YEARS * 365:
+        return None
+    tavg, month_mean, _ = _month_stats(station)
     days = np.array([(m.date - first).days for m in station])
     slope_per_day = np.polyfit(days, tavg - month_mean, 1)[0]
     return float(slope_per_day * 365.25)

@@ -37,7 +37,11 @@ def main() -> None:
         print(f"Coldest: {ext['coldest'].tmin} °C ({ext['coldest'].date})")
         if wettest is not None:
             print(f"Wettest: {wettest.prcp} mm ({wettest.date})")
-        print(f"Trend: {analysis.temperature_trend(station):+.2f} °C/year")
+        trend = analysis.temperature_trend(station)
+        if trend is None:
+            print("Trend: n/a (needs 2+ years)")
+        else:
+            print(f"Trend: {trend:+.2f} °C/year")
         print(f"Anomaly days: {len(analysis.anomaly_days(station))}")
         print(f"Frost / hot / rainy days: {counts['frost']} / "
               f"{counts['hot']} / {counts['rainy']}")
