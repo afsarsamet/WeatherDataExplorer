@@ -112,7 +112,7 @@ classDiagram
    Subclasses implement only `read_rows`: `csv.DictReader` for CSV and `json.load` for JSON. Adding a format means writing one small class and registering its file extension in `LOADERS`.
 3. **Analysis is plain functions, not a class.** Each statistic takes a station and returns plain data, so it can be tested with a few hand-made measurements. Classes are kept for things worth modelling: a day, a city, a file format, a report.
 4. **Seasons are removed before statistics that compare days.** Anomaly days are measured against each calendar month's own mean and standard deviation, so an ordinary cold January day isn't an anomaly. The trend is a straight-line fit (`np.polyfit`) after the same monthly means are subtracted. It is only reported when the data covers at least 2 years.
-5. **Figures are built without `pyplot`.** `Figure()` objects need no GUI backend and no global state, so tests run headless. The summary page is a figure too, which means a PDF and a set of PNGs come from the same list of figures.
+5. **Figures are built without `pyplot`.** `Figure()` objects need no GUI backend and no global state, so tests run headless. The summary pages are figures too (five cities per A4 page), which means a PDF and a set of PNGs come from the same list of figures.
 6. **The CLI stays thin.** The city name comes from the file name, and the output format comes from the file extension. That keeps the CLI to two date options and one output option.
 
 ## 5. Error handling
@@ -121,14 +121,14 @@ classDiagram
 |---|---|---|---|
 | Bad row (date, number, `nan`/`inf`, `tmin > tavg`, negative rain, missing field, non-object JSON record) | `MalformedDataError` | loader: skip row | `WARNING Skipping row 42: …` |
 | Missing, unreadable or non-UTF-8 file; unknown extension; missing CSV columns; invalid JSON; no valid rows | `WeatherDataError` | `main()` | one `ERROR` line, exit code 1 |
-| No data in the selected period; output not `.pdf`/`.png`; output not writable | `WeatherDataError` | `main()` | one `ERROR` line, exit code 1 |
+| No data in the selected period; same city given twice; output not `.pdf`/`.png`; output not writable | `WeatherDataError` | `main()` | one `ERROR` line, exit code 1 |
 | Invalid argument or date, `--start` after `--end` | argparse | argparse | usage message, exit code 2 |
 
 `MalformedDataError` is a subclass of `WeatherDataError`. The loader catches the specific row error, and the CLI catches everything from the package with one `except`.
 
 ## 6. Testing
 
-pytest, with one test file per module and 103 tests in total:
+pytest, with one test file per module and 105 tests in total:
 - **Models and loaders:** valid input, every validation rule, and every file-level error. Input files are written to `tmp_path`.
 - **Analysis:** every statistic on hand-made data with a known answer. This includes a seasons-only series giving a zero trend, and the per-month anomaly baseline.
 - **Visualization:** figure structure (lines per city, grid shape, blank months), not pixels.

@@ -45,7 +45,7 @@ python main.py data/budapest.csv data/vienna.json --start 2023-01-01 --end 2024-
 
 **What you get**
 - The statistics for each city are printed to the terminal.
-- The report has a summary page, a monthly-temperature line chart, a temperature histogram, and one month-by-year heatmap per city.
+- The report has summary pages (five cities per page), a monthly-temperature line chart, a temperature histogram, and one month-by-year heatmap per city.
 - Rows with invalid values are skipped and logged as warnings.
 - A problem with the input or output gives one `ERROR` line and exit code 1.
 - An invalid argument gives a usage message and exit code 2.
