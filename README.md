@@ -18,5 +18,4 @@ pytest              # run the test suite
 
 ## Docs
 
-- [docs/walkthrough.md](docs/walkthrough.md): current codebase walkthrough
-- [docs/roadmap.md](docs/roadmap.md): target design and phase status
+- [docs/projectGuide.md](docs/projectGuide.md): **start here**, the single project guide (task, architecture, state, phases)
