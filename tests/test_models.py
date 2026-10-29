@@ -108,6 +108,11 @@ class TestMeasurement:
         with pytest.raises(ValueError, match="Temperature order"):
             Measurement(datetime.date(2024, 1, 1), 20.0, 0.0, 10.0)
 
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+    def test_rejects_non_finite_values(self, bad: float) -> None:
+        with pytest.raises(ValueError, match="Non-finite"):
+            Measurement(datetime.date(2024, 1, 1), 5.0, 0.0, 10.0, bad)
+
     def test_rejects_negative_precipitation(self) -> None:
         with pytest.raises(ValueError, match="Negative precipitation"):
             Measurement(datetime.date(2024, 1, 1), 5.0, 0.0, 10.0, -1.0)

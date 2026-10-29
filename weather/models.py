@@ -9,6 +9,7 @@ and date-filtering.
 from __future__ import annotations
 
 import datetime
+import math
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -40,7 +41,10 @@ class Measurement:
     # -- validation -------------------------------------------------------
 
     def __post_init__(self) -> None:
-        """Reject physically impossible readings so no invalid instance exists."""
+        """Reject impossible readings so no invalid instance can exist."""
+        values = (self.tavg, self.tmin, self.tmax, self.prcp)
+        if not all(math.isfinite(v) for v in values if v is not None):
+            raise ValueError(f"Non-finite value in {values}")
         if not self.tmin <= self.tavg <= self.tmax:
             raise ValueError(
                 f"Temperature order violated: tmin={self.tmin}, "

@@ -69,8 +69,8 @@ WeatherDataExplorer/
 │   ├── loaders.py             ✅ parse_row, BaseLoader(ABC) → CSVLoader, JSONLoader; load_station()
 │   └── analysis.py            ⚠️ placeholder WeatherAnalyzer (gets replaced in Phase 3)
 ├── tests/
-│   ├── test_models.py         ✅ 23 tests
-│   └── test_loaders.py        ✅ 23 tests
+│   ├── test_models.py         ✅ 25 tests
+│   └── test_loaders.py        ✅ 25 tests
 ├── docs/projectGuide.md       ✅ this guide
 ├── main.py                    ⚠️ demo on Budapest via load_station (becomes the CLI in Phase 5)
 ├── pyproject.toml             ✅ pytest config (testpaths, pythonpath)
@@ -80,7 +80,7 @@ WeatherDataExplorer/
 ```
 
 **Verified on 2026-10-29:**
-- `pytest`: **46 passed**.
+- `pytest`: **50 passed**.
 - `python main.py` loads Budapest's 1,827 records with **0 skipped**. Mean temperature 12.85 °C, max 39.1 °C (2026-08-05), min −10.7 °C (2026-01-09).
 - `load_station` loads Debrecen (1,614 records, 0 skipped) and Vienna (1,613 records). The one skipped Vienna row is a real data error: `tmin=11.8 > tavg=9.3`. It is logged as a warning.
 - **Data quality:**
@@ -216,7 +216,7 @@ classDiagram
 
 #### `models.py` ✅
 
-- `Measurement.__post_init__` raises `ValueError` if `not tmin <= tavg <= tmax` or if `prcp < 0`. An invalid `Measurement` can't exist, so the loader doesn't repeat these checks.
+- `Measurement.__post_init__` raises `ValueError` if any value is `nan`/`inf`, if `not tmin <= tavg <= tmax`, or if `prcp < 0`. An invalid `Measurement` can't exist, so the loader doesn't repeat these checks.
 
 #### `exceptions.py`, `logger.py`
 
@@ -232,7 +232,7 @@ class BaseLoader(ABC):
 
     def load(self, path: Path, city: str) -> WeatherStation:
         # 1. raise WeatherDataError if the file is missing
-        # 2. rows = self.read_rows(path)
+        # 2. rows = self.read_rows(path); OSError/UnicodeDecodeError → WeatherDataError
         # 3. for each row: try parse_row(...) except MalformedDataError → log a warning and skip
         # 4. raise WeatherDataError if no valid rows; otherwise return a WeatherStation
 
@@ -321,8 +321,8 @@ python main.py FILE [FILE ...] [--start YYYY-MM-DD] [--end YYYY-MM-DD]
 
 | Problem | Raised | Handled | User sees |
 |---|---|---|---|
-| Bad row (date, number, `tmin > tavg`, negative rain, missing key) | `MalformedDataError` | the loader skips it | `WARNING Skipping row 42: …` |
-| Missing file, unknown extension, missing CSV columns, invalid JSON, 0 valid rows | `WeatherDataError` | `main()` | `ERROR …`, exit code 1 |
+| Bad row (date, number, `nan`/`inf`, `tmin > tavg`, negative rain, missing key, non-object JSON record) | `MalformedDataError` | the loader skips it | `WARNING Skipping row 42: …` |
+| Missing file, unknown extension, unreadable/non-UTF-8 file, missing CSV columns, invalid JSON, 0 valid rows | `WeatherDataError` | `main()` | `ERROR …`, exit code 1 |
 | Empty period after filtering | `WeatherDataError` | `main()` | `ERROR No data for X in the selected period`, exit code 1 |
 | Bad CLI argument or date | argparse | argparse | usage message, exit code 2 |
 
@@ -349,8 +349,8 @@ The package skeleton, the exceptions and logger, `Measurement`, `WeatherStation`
   - `data/vienna.json` comes from station 11035 (Wien Hohe Warte). It's stored as a JSON array with one object per line, numeric values and `null` for missing ones.
   - Both are taken from Meteostat's bulk daily files (`https://bulk.meteostat.net/v2/daily/<station>.csv.gz`) and cut to Budapest's start date. They aren't produced by a script in the repo.
 - **Tests:**
-  - `tests/test_loaders.py` has 23 tests covering `parse_row`, both loaders, every file-level error, skipping with logging, and dispatch and city naming in `load_station`.
-  - `tests/test_models.py` has +2 tests for validation.
+  - `tests/test_loaders.py` has 25 tests covering `parse_row`, both loaders, every file-level error, skipping with logging, and dispatch and city naming in `load_station`.
+  - `tests/test_models.py` has +4 tests for validation (temperature order, negative rain, `nan`/`inf`).
 
 **Notes for later phases**
 - The cities don't cover the same dates (see §4). In the Phase 5 CLI examples, use dates inside 2021-10-17 → 2026-03-18 when comparing all three. The report should show each city's own date range.

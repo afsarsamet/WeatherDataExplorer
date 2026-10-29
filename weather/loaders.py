@@ -66,8 +66,8 @@ class BaseLoader(ABC):
         Raises
         ------
         WeatherDataError
-            If the file is missing, unreadable for this format, or yields
-            zero valid records.
+            If the file is missing, unreadable, invalid for its format, or
+            yields zero valid records.
         """
         path = Path(file_path)
 
@@ -76,7 +76,11 @@ class BaseLoader(ABC):
 
         measurements: list[Measurement] = []
 
-        rows = self.read_rows(path)
+        try:
+            rows = self.read_rows(path)
+        except (OSError, UnicodeDecodeError) as exc:
+            raise WeatherDataError(f"Cannot read {path.name}: {exc}") from exc
+
         for line_no, row in enumerate(rows, start=self.FIRST_ROW):
             try:
                 measurements.append(parse_row(row, line_no))

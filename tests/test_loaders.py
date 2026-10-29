@@ -26,8 +26,10 @@ CSV_TEXT = (
 )
 
 RECORDS = [
-    {"date": "2024-01-01", "tavg": 1.0, "tmin": -2.0, "tmax": 4.0, "prcp": 0.5},
-    {"date": "2024-01-02", "tavg": 2.0, "tmin": -1.0, "tmax": 5.0, "prcp": None},
+    {"date": "2024-01-01", "tavg": 1.0, "tmin": -2.0, "tmax": 4.0,
+     "prcp": 0.5},
+    {"date": "2024-01-02", "tavg": 2.0, "tmin": -1.0, "tmax": 5.0,
+     "prcp": None},
 ]
 
 EXPECTED = [
@@ -79,6 +81,8 @@ class TestParseRow:
         ({"date": "not-a-date", "tavg": 1, "tmin": 0, "tmax": 2}, "date"),
         ({"date": "2024-01-01", "tavg": "abc", "tmin": 0, "tmax": 2}, "float"),
         ({"date": "2024-01-01", "tavg": None, "tmin": 0, "tmax": 2}, "float"),
+        ({"date": "2024-01-01", "tavg": "nan", "tmin": 0, "tmax": 2},
+         "Non-finite"),
         ({"date": "2024-01-01", "tmin": 0, "tmax": 2}, "Missing field"),
         ({"date": "2024-01-01", "tavg": 5, "tmin": 0, "tmax": 2},
          "Temperature order"),
@@ -131,6 +135,12 @@ class TestLoaders:
         path = tmp_path / "cols.csv"
         path.write_text("date,tavg\n2024-01-01,1.0\n", encoding="utf-8")
         with pytest.raises(WeatherDataError, match="tmax"):
+            CSVLoader().load(path, "Test")
+
+    def test_non_utf8_file(self, tmp_path: Path) -> None:
+        path = tmp_path / "binary.csv"
+        path.write_bytes(b"\xff\xfe\x00garbage")
+        with pytest.raises(WeatherDataError, match="Cannot read"):
             CSVLoader().load(path, "Test")
 
     def test_invalid_json(self, tmp_path: Path) -> None:
