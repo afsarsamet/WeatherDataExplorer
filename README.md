@@ -12,7 +12,7 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python main.py      # run the demo on data/budapest.csv
+python main.py      # demo: print statistics for every city in data/
 pytest              # run the test suite
 ```
 

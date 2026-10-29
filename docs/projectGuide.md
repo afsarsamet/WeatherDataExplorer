@@ -1,161 +1,112 @@
 # Weather Data Explorer: Project Guide
 
-> **This is the single source of truth for the project.** It replaced the earlier `roadmap.md`, `review.md` and `walkthrough.md` (deleted).
-> Last updated: 2026-10-29 · Current state: **Phases 1–2 done**, Phases 3–5 to go.
+> The single reference for the project: the task, the design, the data, and what is done and what is left.
+> Last updated: 2026-10-29 · **Phases 1–3 done ✅ · Phases 4–5 to do ⏳**
 
-**The one rule:** build the MVP that satisfies [Task.md](../Task.md), and nothing more. Every file, class and function below exists because a line of the task asks for it ([§3](#3-requirements-traceability) maps each one back). If something is not in that table, we don't build it.
+**Guiding rule:** build the smallest clean version that fully meets [Task.md](../Task.md). Every module, class and function exists because a line of the task asks for it, as mapped in [§3](#3-requirements-traceability). Anything not in that map is out of scope.
 
 ---
 
 ## 1. Context
 
-- **Course project** for a team of 2, rated **2/10 (easy)**. It uses only Python fundamentals: no machine learning, no web, no database.
-- **The grade comes from code quality**: a clean class design, proper error handling and tests. The breadth of features doesn't earn marks. A small, tidy, well-tested codebase beats a big one.
-- **Data:** daily historical weather from [Meteostat](https://meteostat.net) (CC BY-NC 4.0, attribution required).
+- **What:** a command-line Python toolkit. It loads daily historical weather for several cities, validates it, computes statistics, and writes a PDF or PNG report with plots.
+- **Who:** a course project for a team of 2, rated **2/10 (easy)**. It uses only Python fundamentals: no machine learning, no web, no database.
+- **How it's graded:** on code quality, meaning a clean class design, proper error handling and tests. A small, tidy, well-tested codebase is the goal, not a long feature list.
+- **Data:** daily observations from [Meteostat](https://meteostat.net), licensed CC BY-NC 4.0 (attribution required). See [§5](#5-data).
 
-## 2. The Task
+## 2. The task
 
-The original text is in [Task.md](../Task.md). Here it is broken down into checkable requirements:
+The original text is in [Task.md](../Task.md). Here it is as checkable requirements:
 
-| ID | Requirement (from Task.md) |
+| ID | Requirement |
 |---|---|
 | R1 | Object-oriented package of classes, e.g. `WeatherStation`, `Measurement`, `Report` |
 | R2 | Read raw **CSV and JSON** data for **several cities** |
-| R3 | **Validate** the data, using **custom exceptions** for malformed data, plus **logging** |
+| R3 | **Validate** the data, with **custom exceptions** for malformed data, plus **logging** |
 | R4 | Statistics: **monthly averages, extremes, trends, anomaly days** |
-| R5 | OOP techniques: **classes, inheritance, dunder methods, dataclasses** |
+| R5 | OOP: **classes, inheritance, dunder methods, dataclasses** |
 | R6 | Idioms: **list/dict comprehensions, `Counter`, `defaultdict`, `itertools`** |
 | R7 | Standard Library: **`csv`, `json`, `pathlib`, `datetime`, `argparse`, `statistics`** |
 | R8 | **NumPy** vectorized computations |
 | R9 | **Matplotlib** plots: **line, histogram, heatmap** |
-| R10 | **argparse CLI** that produces a **PDF/PNG report** for **selected cities and periods** |
+| R10 | **argparse CLI** producing a **PDF/PNG report** for **selected cities and periods** |
 | R11 | **Unit tests** (pytest) |
 | R12 | **Short design document with a class diagram** |
 
 ## 3. Requirements traceability
 
-Each row shows where a requirement is met, and the phase that delivers it.
-
-| ID | Where it is satisfied | Phase |
+| ID | Where it is met | Status |
 |---|---|---|
-| R1 | `Measurement`, `WeatherStation` (models.py), `Report` (report.py) | 1 ✅ / 4 |
-| R2 | `CSVLoader`, `JSONLoader`, `load_station()` (loaders.py); 3 city files in `data/` | 1–2 ✅ |
-| R3 | `WeatherDataError`, `MalformedDataError`; loader skips bad rows and logs them; CLI logs fatal errors | 1–2 ✅ / 5 |
-| R4 | `monthly_averages`, `extremes`, `temperature_trend`, `anomaly_days` (analysis.py) | 3 |
-| R5 | dataclass `Measurement`; dunders `__lt__`, `__repr__`, `__len__`, `__iter__`; `BaseLoader(ABC)` → `CSVLoader`, `JSONLoader` | 1–2 ✅ |
-| R6 | list comprehension in `filter_dates`; `defaultdict` + dict comprehension in `monthly_averages`; `Counter` in `day_counts`; `itertools.groupby` in `longest_dry_spell` | 1 ✅ / 3 |
-| R7 | `csv`/`json` (loaders), `pathlib` (everywhere), `datetime` (models, CLI), `statistics` (analysis), `argparse` (main.py) | 1–2 ✅ / 3 / 5 |
-| R8 | NumPy for trend (`np.polyfit`), anomaly z-scores, histogram/heatmap arrays | 3 / 4 |
-| R9 | `plot_monthly_temperature` (line), `plot_temperature_histogram` (hist), `plot_monthly_heatmap` (heatmap) | 4 |
-| R10 | `main.py`: positional files, `--start`/`--end`, `--output report.pdf\|.png` | 5 |
-| R11 | `tests/test_models.py` ✅, `test_loaders.py` ✅, `test_analysis.py`, `test_report.py` | every phase |
-| R12 | `docs/design.md`, with a Mermaid class diagram | 5 |
+| R1 | `Measurement`, `WeatherStation` (models.py); `Report` (report.py) | ✅ / ⏳ Phase 4 |
+| R2 | `CSVLoader`, `JSONLoader`, `load_station()` (loaders.py); `budapest.csv`, `debrecen.csv`, `vienna.json` | ✅ |
+| R3 | `WeatherDataError`, `MalformedDataError`; `Measurement` validates itself; loaders skip and log bad rows; CLI reports fatal errors | ✅ / ⏳ Phase 5 (CLI) |
+| R4 | `monthly_averages`, `extremes`, `temperature_trend`, `anomaly_days` (analysis.py) | ✅ |
+| R5 | dataclass `Measurement`; dunders `__post_init__`, `__lt__`, `__repr__`, `__len__`, `__iter__`; `BaseLoader(ABC)` → `CSVLoader`, `JSONLoader` | ✅ |
+| R6 | comprehensions in `filter_dates`, `extremes`, `monthly_averages`, `anomaly_days`; `defaultdict` in `monthly_averages`; `Counter` in `day_counts`; `itertools.groupby` in `longest_dry_spell` | ✅ |
+| R7 | `csv`, `json` (loaders); `pathlib` (loaders, main); `datetime` (models, loaders); `statistics` (analysis); `argparse` (main.py) | ✅ / ⏳ Phase 5 (`argparse`) |
+| R8 | NumPy in `_month_stats`, `anomaly_days` (vectorized z-scores), `temperature_trend` (`np.polyfit`); heatmap grid | ✅ / ⏳ Phase 4 |
+| R9 | `plot_monthly_temperature` (line), `plot_temperature_histogram` (histogram), `plot_monthly_heatmap` (heatmap) | ⏳ Phase 4 |
+| R10 | `main.py`: positional files, `--start`/`--end`, `-o report.pdf\|.png` | ⏳ Phase 5 |
+| R11 | `test_models.py`, `test_loaders.py`, `test_analysis.py` ✅; `test_report.py` ⏳ | ✅ / ⏳ Phases 4–5 |
+| R12 | `docs/design.md` with a Mermaid class diagram | ⏳ Phase 5 |
 
 ---
 
-## 4. Current state of the repo (after Phase 2)
+## 4. Architecture
+
+### 4.1 Data flow
+
+```
+files ──▶ loaders ──▶ WeatherStation ──▶ analysis ──▶ visualization ──▶ Report ──▶ PDF / PNG
+(csv/json)  (validate)   (Measurements)   (numbers)    (Figures)        (assemble)
+                                                        ▲
+                                    main.py (argparse) ─┘ chooses files, period, output
+```
+
+- **Models** are plain data. A `Measurement` that exists is always valid.
+- **Loaders** are the only code that touches raw input. They turn a file into a `WeatherStation` and skip bad rows, logging each one.
+- **Analysis** is a set of pure functions: station in, plain numbers or lists out.
+- **Visualization** is pure functions too: stations in, Matplotlib `Figure` out.
+- **`Report`** assembles the statistics and figures and writes the output file.
+- **`main.py`** parses arguments, applies the date period, and turns fatal errors into one clean message.
+
+Classes are used where they model something: a measurement, a station, a family of loaders, a report. Everything else is a function.
+
+### 4.2 Repository layout
 
 ```
 WeatherDataExplorer/
 ├── data/
-│   ├── budapest.csv           ✅ 1,827 daily rows, 2021-10-17 → 2026-10-17
-│   ├── debrecen.csv           ✅ 1,614 daily rows, 2021-10-17 → 2026-03-18
-│   └── vienna.json            ✅ 1,614 daily records, 2021-10-17 → 2026-03-18 (1 invalid row, skipped)
+│   ├── budapest.csv            ✅ CSV, 1,827 days
+│   ├── debrecen.csv            ✅ CSV, 1,614 days
+│   └── vienna.json             ✅ JSON, 1,614 records
 ├── weather/
-│   ├── __init__.py            ✅ re-exports the public API
-│   ├── exceptions.py          ✅ WeatherDataError, MalformedDataError(line_number, reason)
-│   ├── logger.py              ✅ setup_logging(verbose)
-│   ├── models.py              ✅ Measurement (frozen/slots dataclass, validates itself), WeatherStation
-│   ├── loaders.py             ✅ parse_row, BaseLoader(ABC) → CSVLoader, JSONLoader; load_station()
-│   └── analysis.py            ⚠️ placeholder WeatherAnalyzer (gets replaced in Phase 3)
+│   ├── __init__.py             ✅ public API
+│   ├── exceptions.py           ✅ WeatherDataError, MalformedDataError
+│   ├── logger.py               ✅ setup_logging()
+│   ├── models.py               ✅ Measurement, WeatherStation
+│   ├── loaders.py              ✅ parse_row, BaseLoader, CSVLoader, JSONLoader, load_station
+│   ├── analysis.py             ✅ statistics functions
+│   ├── visualization.py        ⏳ Phase 4: line, histogram, heatmap
+│   └── report.py               ⏳ Phase 4: Report
 ├── tests/
-│   ├── test_models.py         ✅ 25 tests
-│   └── test_loaders.py        ✅ 25 tests
-├── docs/projectGuide.md       ✅ this guide
-├── main.py                    ⚠️ demo on Budapest via load_station (becomes the CLI in Phase 5)
-├── pyproject.toml             ✅ pytest config (testpaths, pythonpath)
-├── requirements.txt           ✅ numpy, matplotlib, pytest
-├── .vscode/settings.json      ✅ uses .venv, hides caches
-├── .gitignore, README.md, Task.md
-```
-
-**Verified on 2026-10-29:**
-- `pytest`: **50 passed**.
-- `python main.py` loads Budapest's 1,827 records with **0 skipped**. Mean temperature 12.85 °C, max 39.1 °C (2026-08-05), min −10.7 °C (2026-01-09).
-- `load_station` loads Debrecen (1,614 records, 0 skipped) and Vienna (1,613 records). The one skipped Vienna row is a real data error: `tmin=11.8 > tavg=9.3`. It is logged as a warning.
-- **Data quality:**
-  - `tavg`, `tmin` and `tmax` are complete for all three cities.
-  - `prcp` is missing on 247 days for Budapest, 223 for Debrecen and 17 for Vienna. Missing values become `None`.
-  - There are no duplicate dates.
-  - **Debrecen and Vienna end on 2026-03-18**, because that's where Meteostat's bulk files stop. Budapest runs to 2026-10-17. The period where all three overlap is **2021-10-17 → 2026-03-18**.
-- **Environment:** `.venv` has Python 3.13, numpy 2.5, matplotlib 3.11 and pytest 9.1. **The code needs Python ≥ 3.10** because it uses `slots=True` and `X | Y` types.
-
-**What is good and stays:**
-- The immutable `Measurement`.
-- `WeatherStation` sorts its measurements on construction and returns a new station from `filter_dates`.
-- The two-level exception hierarchy.
-- The `utf-8-sig` BOM handling.
-- The `REQUIRED_COLUMNS` header check.
-- The pytest config, so `tests/` needs no `__init__.py`.
-- `BaseLoader.load` holds all the shared loading steps, so each subclass only implements `read_rows`.
-
-**What is still missing:**
-- No analysis (R4), plots (R9), report or CLI (R10).
-- `.gitignore` doesn't ignore generated reports.
-- The README has no data source and doesn't state the Python version.
-
----
-
-## 5. Target architecture
-
-### 5.1 Design in one paragraph
-
-Data flows in one direction:
-
-**files → loaders → `WeatherStation` → analysis functions → plots → `Report` → PDF/PNG**
-
-- **Models** are plain data.
-- **Loaders** turn files into models, and are the only place that touches raw input.
-- **Analysis** is a set of pure functions: station in, numbers out. That makes each one trivial to test with synthetic data.
-- **Visualization** is pure functions too: stations in, `Figure` out.
-- **`Report`** is the only orchestrator.
-- **`main.py`** only parses arguments and handles fatal errors.
-
-Classes are used where they model something: a measurement, a station, a family of loaders, a report. Functions are used everywhere else. No class exists just to hold functions.
-
-### 5.2 Final repo layout
-
-```
-WeatherDataExplorer/
-├── data/
-│   ├── budapest.csv           # existing
-│   ├── debrecen.csv           # second city, CSV
-│   └── vienna.json            # third city, JSON (exercises JSONLoader)
-├── weather/
-│   ├── __init__.py            # public API
-│   ├── exceptions.py          # unchanged
-│   ├── logger.py              # unchanged
-│   ├── models.py              # Measurement validates itself in __post_init__
-│   ├── loaders.py             # BaseLoader(ABC), CSVLoader, JSONLoader, load_station()
-│   ├── analysis.py            # pure functions (statistics, numpy, collections, itertools)
-│   ├── visualization.py       # NEW: line, histogram, heatmap → Figure
-│   └── report.py              # NEW: Report class → PDF or PNGs
-├── tests/
-│   ├── test_models.py         # done
-│   ├── test_loaders.py        # done
-│   ├── test_analysis.py       # NEW
-│   └── test_report.py         # NEW: report output + CLI end-to-end
+│   ├── test_models.py          ✅ 25 tests
+│   ├── test_loaders.py         ✅ 25 tests
+│   ├── test_analysis.py        ✅ 20 tests
+│   └── test_report.py          ⏳ Phases 4–5: report output + CLI end-to-end
 ├── docs/
-│   ├── projectGuide.md        # this file (internal plan)
-│   └── design.md              # NEW: the deliverable design doc + class diagram
-├── output/                    # generated reports (git-ignored)
-├── main.py                    # argparse CLI
-├── pyproject.toml, requirements.txt, README.md, Task.md, .gitignore, .vscode/
+│   ├── projectGuide.md         ✅ this guide
+│   └── design.md               ⏳ Phase 5: deliverable design document
+├── output/                     ⏳ Phase 5: generated reports (git-ignored)
+├── main.py                     ✅ demo (prints stats for all cities) → ⏳ Phase 5: argparse CLI
+├── pyproject.toml              ✅ pytest config (testpaths, pythonpath)
+├── requirements.txt            ✅ numpy, matplotlib, pytest
+├── README.md                   ✅ setup + usage (⏳ Phase 5: full version)
+├── Task.md                     ✅ the assignment
+└── .gitignore, .vscode/settings.json
 ```
 
-That's 8 modules, 4 test files and 2 docs. There's no `utils.py`, `config.py`, `cli/` package, plugin system or settings file.
-
-### 5.3 Class diagram (target)
+### 4.3 Class diagram
 
 ```mermaid
 classDiagram
@@ -182,14 +133,14 @@ classDiagram
         <<abstract>>
         +FIRST_ROW: int
         +load(path, city) WeatherStation
-        #read_rows(path)* list~dict~
+        +read_rows(path)* list~dict~
     }
     class CSVLoader {
         +FIRST_ROW = 2
-        #read_rows(path) list~dict~
+        +read_rows(path) list~dict~
     }
     class JSONLoader {
-        #read_rows(path) list~dict~
+        +read_rows(path) list~dict~
     }
     class Report {
         +stations: list~WeatherStation~
@@ -212,258 +163,258 @@ classDiagram
     WeatherDataError <|-- MalformedDataError
 ```
 
-### 5.4 Module specifications
+### 4.4 Modules
+
+#### `exceptions.py` ✅
+- `WeatherDataError(Exception)`: the package's root exception, for problems at the file or run level.
+- `MalformedDataError(WeatherDataError)`: one bad row. It carries `line_number` and `reason`.
+
+#### `logger.py` ✅
+- `setup_logging(verbose=False)` configures the root logger once, with the format `HH:MM:SS [LEVEL] module: message`. `verbose=True` switches to DEBUG.
 
 #### `models.py` ✅
+- **`Measurement`** is a `@dataclass(frozen=True, slots=True)` with fields `date`, `tavg`, `tmin`, `tmax` and `prcp`, where `prcp` is `None` if missing.
+  - `__post_init__` raises `ValueError` if any value is `nan`/`inf`, if `tmin ≤ tavg ≤ tmax` doesn't hold, or if `prcp < 0`.
+  - `__lt__` orders by date, and `__repr__` shows `N/A` for missing rain.
+- **`WeatherStation(city, measurements)`** sorts its measurements by date on construction.
+  - `__len__` and `__iter__` work as you'd expect.
+  - `filter_dates(start, end)` returns a **new** station covering the closed interval. Either bound may be `None`.
 
-- `Measurement.__post_init__` raises `ValueError` if any value is `nan`/`inf`, if `not tmin <= tavg <= tmax`, or if `prcp < 0`. An invalid `Measurement` can't exist, so the loader doesn't repeat these checks.
+#### `loaders.py` ✅
+- **`parse_row(row, line_no) -> Measurement`** turns one raw record into a `Measurement`.
+  - Values can be strings (CSV) or numbers/`null` (JSON). An empty or missing `prcp` becomes `None`.
+  - Every problem raises `MalformedDataError`: a non-object record, a missing field, an unparsable date or number, or anything `Measurement` rejects.
+- **`BaseLoader(ABC)`** uses a template method, `load(path, city)`:
+  1. Check the file exists.
+  2. Call `read_rows(path)`. A read or encoding failure becomes a `WeatherDataError`.
+  3. Parse each row, logging and skipping any `MalformedDataError`.
+  4. Fail if no valid rows remain; otherwise return a `WeatherStation`.
 
-#### `exceptions.py`, `logger.py`
+  Subclasses implement only `read_rows`. `FIRST_ROW` sets the row number used in warnings.
+- **`CSVLoader`** reads with `csv.DictReader` and `utf-8-sig` (which handles the Meteostat BOM). It rejects files missing any of `REQUIRED_COLUMNS` (`date`, `tavg`, `tmin`, `tmax`), and sets `FIRST_ROW = 2` because line 1 is the header.
+- **`JSONLoader`** reads with `json.load`. The file must contain a JSON array of objects that use the same keys as the CSV.
+- **`load_station(path)`** picks the loader from the file extension (`.csv` or `.json`) and names the city from the file: `vienna.json` becomes "Vienna".
 
-No changes.
+#### `analysis.py` ✅
+Every function takes a non-empty `WeatherStation`. The loaders and the CLI guarantee it isn't empty.
 
-#### `loaders.py`
-
-`load` is a template method: the shared steps live in the base class, and each subclass supplies only how to read its file format.
-
-```python
-class BaseLoader(ABC):
-    FIRST_ROW = 1                       # CSV overrides with 2 (the header is line 1)
-
-    def load(self, path: Path, city: str) -> WeatherStation:
-        # 1. raise WeatherDataError if the file is missing
-        # 2. rows = self.read_rows(path); OSError/UnicodeDecodeError → WeatherDataError
-        # 3. for each row: try parse_row(...) except MalformedDataError → log a warning and skip
-        # 4. raise WeatherDataError if no valid rows; otherwise return a WeatherStation
-
-    @abstractmethod
-    def read_rows(self, path: Path) -> list[dict]: ...
-
-class CSVLoader(BaseLoader):    # csv.DictReader, utf-8-sig, keeps the REQUIRED_COLUMNS check
-class JSONLoader(BaseLoader):   # json.load → must be a list of objects, else WeatherDataError
-
-def parse_row(row: dict, line_no: int) -> Measurement:
-    # wraps ValueError/TypeError/KeyError into MalformedDataError(line_no, reason)
-    # accepts values as strings (CSV) or numbers/null (JSON); "" or None prcp → None
-
-LOADERS = {".csv": CSVLoader, ".json": JSONLoader}
-
-def load_station(path: Path) -> WeatherStation:
-    # choose the loader by path.suffix (unknown suffix → WeatherDataError)
-    # city = path.stem.title(), so "vienna.json" becomes "Vienna"
-```
-
-#### `analysis.py`: pure functions, replacing `WeatherAnalyzer`
-
-Each function takes a `WeatherStation` and returns plain data.
-
-| Function | Returns | Technique (req.) |
+| Function | Returns | Technique |
 |---|---|---|
-| `summary(station)` | `{"mean", "median", "stdev"}` of `tavg` | `statistics` (R7) |
-| `extremes(station)` | `{"hottest", "coldest", "wettest"}` → `Measurement` | `max`/`min` with `key=` |
-| `monthly_averages(station)` | `{(year, month): mean_tavg}` | `defaultdict(list)` + dict comprehension (R4, R6) |
-| `anomaly_days(station, threshold=2.0)` | `list[Measurement]` | NumPy z-score **per calendar month** (R4, R8) |
-| `temperature_trend(station)` | °C per year (float) | `np.polyfit` on the de-seasonalised series (R4, R8) |
-| `day_counts(station)` | `Counter({"frost": n, "hot": n, "rainy": n})` | `Counter` (R6) |
-| `longest_dry_spell(station)` | `int` (days) | `itertools.groupby` (R6) |
+| `summary(station)` | `{"mean", "median", "stdev"}` of `tavg` | `statistics` |
+| `extremes(station)` | `{"hottest", "coldest", "wettest"}` → `Measurement` (`wettest` is `None` if there's no rain data) | `max`/`min` with `key=` |
+| `monthly_averages(station)` | `{(year, month): mean tavg}`, in date order | `defaultdict(list)` + dict comprehension |
+| `anomaly_days(station, threshold=2.0)` | `list[Measurement]` | NumPy vectorized z-scores |
+| `temperature_trend(station)` | °C per year | `np.polyfit` |
+| `day_counts(station)` | `Counter` of `"frost"`, `"hot"`, `"rainy"` | `Counter` + generator |
+| `longest_dry_spell(station)` | `int` (days) | `itertools.groupby` |
 
-**How each statistic is defined.** Write these in the docstrings.
+**Definitions:**
+- **Seasonal baseline:** `_month_stats` gives each day the mean and standard deviation σ of `tavg` over all days in the same calendar month, across all years.
+- **Anomaly day:** `tavg` is more than `threshold` × σ away from its calendar month's mean. Because the baseline is per month, an ordinary cold January day isn't flagged.
+- **Trend:** subtract each day's month mean to remove the seasons, then fit a straight line against days since the first record. The slope × 365.25 gives °C per year. Removing the seasons keeps a partial year at either end from skewing the result.
+- **Frost day:** `tmin < 0`. **Hot day:** `tmax ≥ 30`. **Rainy day:** `prcp ≥ 1.0` mm. A single day can count in several categories.
+- **Dry spell:** consecutive records with `prcp == 0`. A missing `prcp` is unknown, not dry, so it ends the run.
 
-- **Anomaly day:** a day whose `tavg` is more than 2σ from the mean of **its own calendar month**, taken across all years. Comparing against a single yearly mean would only flag ordinary winter and summer days.
-- **Trend:** first subtract each day's calendar-month mean to remove the seasons. Then take the slope of a straight-line fit of that series against the number of days since the start, and multiply by 365.25 to get °C per year. Removing the seasons means a partial year at the start or end doesn't skew the slope.
-- **Frost day:** `tmin < 0`. **Hot day:** `tmax ≥ 30`. **Rainy day:** `prcp ≥ 1.0` mm. A single day can count in more than one category.
-- **Dry day:** `prcp == 0`. A missing `prcp` (`None`) is *not* dry, so it breaks a streak.
-
-> Anomaly days and the trend both need each calendar month's mean and σ. Put that in one private helper, `_month_stats(station)`, built with NumPy.
-
-#### `visualization.py`
-
+#### `visualization.py` ⏳ Phase 4
 - Every function returns a `matplotlib.figure.Figure`.
-- Build figures with `Figure()` directly rather than `pyplot`. That avoids GUI backends and global state, so tests run headless and nothing leaks memory.
+- Build figures with `Figure()` directly, not `pyplot`. There's then no GUI backend and no global state, so tests run headless.
 
-| Function | Plot (R9) |
+| Function | Plot |
 |---|---|
-| `plot_monthly_temperature(stations)` | **Line**: monthly mean `tavg` over time, one line per city |
-| `plot_temperature_histogram(stations)` | **Histogram**: daily `tavg` distribution, overlaid per city (`alpha=0.5`) |
+| `plot_monthly_temperature(stations)` | **Line**: `monthly_averages` over time, one line per city |
+| `plot_temperature_histogram(stations)` | **Histogram**: daily `tavg`, overlaid per city (`alpha=0.5`) |
 | `plot_monthly_heatmap(station)` | **Heatmap**: years × 12 months of mean `tavg` (`imshow` + colorbar), one per city |
 
-#### `report.py`
+#### `report.py` ⏳ Phase 4
 
 ```python
 class Report:
     def __init__(self, stations: list[WeatherStation]) -> None: ...
-    def summary_text(self) -> str:        # one block per city: period, records, summary,
-                                          # extremes, trend, anomaly count, day counts, dry spell
-    def figures(self) -> list[Figure]:    # [summary page, line, histogram, one heatmap per city]
+    def summary_text(self) -> str:
+        # one block per city: period, records, summary, extremes, trend,
+        # anomaly count, day counts, longest dry spell
+    def figures(self) -> list[Figure]:
+        # [summary page, line, histogram, one heatmap per city]
     def save(self, path: Path) -> list[Path]:
-        # .pdf → one multi-page PDF via PdfPages
+        # .pdf → one multi-page PDF (PdfPages)
         # .png → one PNG per figure: <stem>_1_summary.png, <stem>_2_line.png, …
         # any other suffix → WeatherDataError
 ```
 
-- The summary page is a `Figure` containing `fig.text(...)` in a monospace font. That way PDF and PNG output go through the same code path, and there's no table library.
+- The summary page is a `Figure` with `fig.text(...)` in a monospace font, so PDF and PNG share one code path.
+- Close the figures after saving them.
 
-#### `main.py`
+#### `main.py` ⏳ Phase 5
 
 ```
 python main.py FILE [FILE ...] [--start YYYY-MM-DD] [--end YYYY-MM-DD]
                                [-o output/report.pdf] [-v]
 ```
 
-- **Files:** positional. Each file is one city, and the city name comes from the file name.
-- **Dates:** `--start`/`--end` use `type=date.fromisoformat`, so a bad date gets argparse's own clean error. Each station is filtered with `filter_dates`. A station left empty raises `WeatherDataError("No data for <city> in the selected period")`.
-- **Output:** `-o/--output` defaults to `output/report.pdf`. The suffix (`.pdf` or `.png`) chooses the format, so there's no separate `--format` flag. The parent folder is created if needed.
-- **Logging:** `-v` sets logging to DEBUG.
-- **Structure:** write it as `def main(argv: list[str] | None = None) -> int` so tests can call it directly.
-- **Errors:** wrap the body in `try / except WeatherDataError as e: logger.error(e); return 1`, and end the file with `raise SystemExit(main())`.
+- **Files:** positional. Each file is one city, loaded with `load_station`.
+- **Dates:** `--start`/`--end` use `type=date.fromisoformat`. Each station is cut to the period with `filter_dates`. A station left empty raises `WeatherDataError("No data for <city> in the selected period")`.
+- **Output:** `-o/--output` defaults to `output/report.pdf`. The suffix (`.pdf` or `.png`) chooses the format, and missing parent folders are created.
+- **Logging:** `-v` turns on DEBUG logging.
+- **Structure:** write it as `main(argv: list[str] | None = None) -> int` so tests can call it. Catch `WeatherDataError`, log it as an error and return 1. End the file with `raise SystemExit(main())`.
 
-### 5.5 Error handling at a glance
+### 4.5 Error handling
 
-| Problem | Raised | Handled | User sees |
+| Problem | Raised | Handled by | User sees |
 |---|---|---|---|
-| Bad row (date, number, `nan`/`inf`, `tmin > tavg`, negative rain, missing key, non-object JSON record) | `MalformedDataError` | the loader skips it | `WARNING Skipping row 42: …` |
-| Missing file, unknown extension, unreadable/non-UTF-8 file, missing CSV columns, invalid JSON, 0 valid rows | `WeatherDataError` | `main()` | `ERROR …`, exit code 1 |
+| Bad row: date, number, `nan`/`inf`, `tmin > tavg`, negative rain, missing field, non-object JSON record | `MalformedDataError` | the loader skips the row | `WARNING Skipping row 42: …` |
+| Missing file, unknown extension, unreadable or non-UTF-8 file, missing CSV columns, invalid JSON, no valid rows | `WeatherDataError` | `main()` | `ERROR …`, exit code 1 |
 | Empty period after filtering | `WeatherDataError` | `main()` | `ERROR No data for X in the selected period`, exit code 1 |
 | Bad CLI argument or date | argparse | argparse | usage message, exit code 2 |
 
 ---
 
-## 6. Phases
+## 5. Data
 
-Each phase ends with `pytest` green and a commit or PR. Tests are written **in the same phase** as the code they cover, not saved for the end.
+| City | File | Meteostat station | Period | Records | Missing `prcp` |
+|---|---|---|---|---|---|
+| Budapest | `budapest.csv` | Meteostat export | 2021-10-17 → 2026-10-17 | 1,827 | 247 |
+| Debrecen | `debrecen.csv` | 12882 | 2021-10-17 → 2026-03-18 | 1,614 | 223 |
+| Vienna | `vienna.json` | 11035 (Wien Hohe Warte) | 2021-10-17 → 2026-03-18 | 1,614 (1,613 valid) | 17 |
 
-### Phase 1: Skeleton and models ✅ DONE
-The package skeleton, the exceptions and logger, `Measurement`, `WeatherStation`, a working `CSVLoader`, the demo `main.py` and 21 model tests.
+- **Columns:** `date, tavg, tmin, tmax, prcp, snow, wdir, wspd, wpgt, pres, tsun`. The project uses `date`, `tavg`, `tmin`, `tmax` and `prcp`.
+- **Quality:**
+  - `tavg`, `tmin` and `tmax` are complete in all three files.
+  - There are no duplicate dates and no gaps.
+  - Missing `prcp` values become `None`.
+- **Known bad row:** Vienna record 898 has `tmin 11.8 > tavg 9.3`. It is skipped with a warning, which shows the validation working on real data.
+- **Where Debrecen and Vienna come from:** Meteostat's bulk daily files at `https://bulk.meteostat.net/v2/daily/<station>.csv.gz`, which end on 2026-03-18. They were cut to start on Budapest's first day. Vienna is stored as a JSON array with one object per line, using numbers and `null`.
+- **Comparing cities:** the period all three share is **2021-10-17 → 2026-03-18**. Use dates inside it for multi-city reports.
 
-### Phase 2: Loading and validation ✅ DONE
+**Current results** (from `python main.py`):
 
-**What was done**
-- `models.py`: `Measurement.__post_init__` validates temperature order and rain.
-- `loaders.py`:
-  - `parse_row()` turns every bad record into a `MalformedDataError` with its line number. That covers a bad date, a bad number, a missing field, impossible values and, in JSON, a record that isn't an object.
-  - `BaseLoader(ABC)` holds `load()`, and `CSVLoader` and `JSONLoader` implement only `read_rows()`.
-  - `load_station()` picks the loader from the file extension and names the city from the file.
-- `__init__.py` exports the new names, and `main.py` uses `load_station`.
-- **Data:**
-  - `data/debrecen.csv` comes from Meteostat station 12882.
-  - `data/vienna.json` comes from station 11035 (Wien Hohe Warte). It's stored as a JSON array with one object per line, numeric values and `null` for missing ones.
-  - Both are taken from Meteostat's bulk daily files (`https://bulk.meteostat.net/v2/daily/<station>.csv.gz`) and cut to Budapest's start date. They aren't produced by a script in the repo.
-- **Tests:**
-  - `tests/test_loaders.py` has 25 tests covering `parse_row`, both loaders, every file-level error, skipping with logging, and dispatch and city naming in `load_station`.
-  - `tests/test_models.py` has +4 tests for validation (temperature order, negative rain, `nan`/`inf`).
+| | Budapest | Debrecen | Vienna |
+|---|---|---|---|
+| Mean / median / stdev `tavg` (°C) | 12.85 / 12.40 / 8.58 | 11.63 / 10.70 / 8.79 | 11.72 / 11.10 / 8.00 |
+| Hottest `tmax` | 39.1 °C (2026-08-05) | 38.5 °C (2022-07-23) | 36.8 °C (2025-07-03) |
+| Coldest `tmin` | −10.7 °C (2026-01-09) | −16.2 °C (2026-01-11) | −10.1 °C (2024-01-10) |
+| Wettest day | 28.1 mm (2023-06-06) | 36.3 mm (2022-09-10) | 113.9 mm (2024-08-17) |
+| Trend | −0.15 °C/yr | +0.05 °C/yr | −0.17 °C/yr |
+| Anomaly days | 62 | 57 | 58 |
+| Frost / hot / rainy days | 231 / 186 / 371 | 366 / 182 / 308 | 231 / 135 / 390 |
+| Longest dry spell | 33 days | 18 days | 19 days |
 
-**Notes for later phases**
-- The cities don't cover the same dates (see §4). In the Phase 5 CLI examples, use dates inside 2021-10-17 → 2026-03-18 when comparing all three. The report should show each city's own date range.
-
-### Phase 3: Analysis (next)
-
-**Modify**
-- Rewrite `analysis.py` as the 7 functions in §5.4, plus `_month_stats`.
-- Delete `WeatherAnalyzer`.
-- Update `main.py` and `__init__.py` to match.
-
-**Add**
-- `tests/test_analysis.py`. Use small synthetic stations whose answers are known:
-  - a constant series has trend 0 and no anomalies;
-  - a known outlier is flagged;
-  - monthly averages are correct over 2 months;
-  - `day_counts` is correct on hand-made days;
-  - the dry spell is correct, including when broken by `None`;
-  - the extremes return the right `Measurement`.
-
-**Done when:** every function has at least one test with a known answer.
-
-### Phase 4: Plots and report
-
-**Add**
-- `weather/visualization.py`: the 3 plot functions.
-- `weather/report.py`: the `Report` class.
-- `tests/test_report.py`:
-  - `summary_text()` contains each city name;
-  - `figures()` has 3 + N figures, where N is the number of cities;
-  - `save("x.pdf")` creates a non-empty file;
-  - `save("x.png")` creates one PNG per figure;
-  - `save("x.txt")` raises `WeatherDataError`.
-
-Don't test the pixels of the plots. Only check that the figures exist.
-
-**Done when:** a PDF for all 3 cities opens and looks right when checked by eye.
-
-### Phase 5: CLI, docs and polish
-
-**Modify**
-- `main.py`: the full argparse CLI from §5.4.
-- `.gitignore`: add `output/`.
-- `README.md`:
-  - Requires Python 3.10+;
-  - setup steps;
-  - 3 example commands;
-  - data source with Meteostat attribution;
-  - links to the docs.
-
-**Add**
-- `docs/design.md`, the graded deliverable, kept to 1–2 pages:
-  - purpose;
-  - the data flow;
-  - the class diagram from §5.3;
-  - the main design decisions and why (dataclass, template-method loaders, pure analysis functions, the error-handling table from §5.5);
-  - how to run the tool and its tests.
-- CLI end-to-end tests in `test_report.py`:
-  - `main([csv, "-o", tmp/report.pdf])` returns 0 and creates the file;
-  - a missing file returns 1;
-  - an empty period returns 1.
-
-**Done when** the commands in §7 work.
-
-#### Team of 2: suggested split
-- **Phase 2:** one person does the loaders and their tests; the other gets the two new data files.
-- **Phases 3 and 4:** these can run in parallel. One person does `analysis.py`, the other `visualization.py`. They only meet in `Report`.
-- **Phase 5:** together.
+Each city's figures cover its own full date range. Debrecen and Vienna stop on 2026-03-18, so their numbers are for a shorter period than Budapest's. Over about 5 years the trend is mostly noise; it is reported as computed.
 
 ---
 
-## 7. MVP acceptance checklist (final)
+## 6. Development
+
+- **Python ≥ 3.10**, because the code uses `slots=True` and `X | Y` types. The team uses 3.13.
+- **Setup:**
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  ```
+- **Run:**
+  - `pytest` runs the tests; `pyproject.toml` sets `testpaths` and `pythonpath`, so `tests/` needs no `__init__.py`.
+  - `python main.py` runs the demo.
+- **Conventions:**
+  - Keep lines at 79 characters or fewer.
+  - Use numpy-style docstrings.
+  - Get a logger in each module with `logging.getLogger(__name__)`.
+  - Write tests in the same phase as the code they cover, using small hand-made data with known answers.
+- **Workflow:**
+  - Do one branch per phase, from an up-to-date `main`.
+  - Use short commit messages.
+  - Merge to `main` through a PR when `pytest` is green.
+
+---
+
+## 7. Phases
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Skeleton, exceptions, logging, models | ✅ done |
+| 2 | Loaders (CSV + JSON), validation, city data | ✅ done |
+| 3 | Analysis | ✅ done |
+| 4 | Plots and report | ⏳ next |
+| 5 | CLI, design document, README | ⏳ to do |
+
+### Phase 1: Skeleton and models ✅
+- The package skeleton with `requirements.txt`, `pyproject.toml` and `.vscode/settings.json`.
+- `exceptions.py`, `logger.py`, `Measurement`, `WeatherStation`.
+- `tests/test_models.py`.
+
+### Phase 2: Loading and validation ✅
+- `Measurement.__post_init__` validation.
+- `parse_row`, `BaseLoader`, `CSVLoader`, `JSONLoader`, `load_station`.
+- `data/debrecen.csv` and `data/vienna.json`.
+- `tests/test_loaders.py`, covering parsing, both loaders, every file-level error, skipping with logging, and extension dispatch.
+
+### Phase 3: Analysis ✅
+- `analysis.py`: `summary`, `extremes`, `monthly_averages`, `anomaly_days`, `temperature_trend`, `day_counts` and `longest_dry_spell`, plus the `_month_stats` helper.
+- `main.py` demo prints every statistic for all three cities.
+- `tests/test_analysis.py`: every function is tested against hand-made data with a known answer. That includes the per-month anomaly baseline, and a seasons-only series giving a zero trend.
+
+### Phase 4: Plots and report ⏳ next
+
+**Build**
+- `weather/visualization.py`: `plot_monthly_temperature`, `plot_temperature_histogram`, `plot_monthly_heatmap` (§4.4).
+- `weather/report.py`: `Report` with `summary_text`, `figures` and `save` (§4.4).
+- Export `Report` from `weather/__init__.py`.
+
+**Test** (`tests/test_report.py`)
+- `summary_text()` contains every city name.
+- `figures()` returns 3 + N figures, where N is the number of cities.
+- `save("x.pdf")` writes one non-empty file.
+- `save("x.png")` writes one PNG per figure.
+- `save("x.txt")` raises `WeatherDataError`.
+- Check that the figures exist; don't test their pixels.
+
+**Done when** a PDF for all three cities opens and looks right by eye.
+
+### Phase 5: CLI, design document, README ⏳
+
+**Build**
+- `main.py`: the argparse CLI (§4.4).
+- `.gitignore`: add `output/`.
+- `README.md`:
+  - Python ≥ 3.10;
+  - setup;
+  - three example commands;
+  - data source and Meteostat attribution;
+  - a link to the docs.
+- `docs/design.md`, the graded design document, kept to 1–2 pages:
+  - purpose and data flow (§4.1);
+  - the class diagram (§4.3);
+  - the key design decisions and the reasons for them: a self-validating dataclass, template-method loaders, pure analysis functions, figures built without `pyplot`;
+  - the error-handling table (§4.5);
+  - how to run the tool and its tests.
+
+**Test** (in `tests/test_report.py`)
+- `main([csv, "-o", tmp/"report.pdf"])` returns 0 and creates the file.
+- A missing file returns 1.
+- An empty period returns 1.
+
+**Done when** the acceptance checklist below passes.
+
+**Team of 2:** in Phase 4, one person can write `visualization.py` while the other writes `report.py` and its tests; they meet at `figures()`. Do Phase 5 together.
+
+---
+
+## 8. Acceptance checklist
 
 ```bash
-pytest                                                    # all green
-python main.py data/budapest.csv data/debrecen.csv data/vienna.json            # → output/report.pdf
+pytest
+python main.py data/budapest.csv data/debrecen.csv data/vienna.json --end 2026-03-18
 python main.py data/budapest.csv --start 2024-01-01 --end 2024-12-31 -o output/bp2024.png
-python main.py data/missing.csv                           # → one ERROR line, exit 1
+python main.py data/missing.csv
 ```
 
-- [ ] R1–R12 are each satisfied, as mapped in §3
-- [ ] The PDF has a summary page with the stats for each city, a line chart, a histogram and one heatmap per city
-- [ ] No tracebacks for any user error
-- [ ] `docs/design.md` has the class diagram
-- [ ] The README lets a fresh clone run the tool in 3 commands
+The first command must pass. The second must write `output/report.pdf`, and the third must write one PNG per figure. The fourth must print a single `ERROR` line and exit with code 1.
 
-## 8. Docs cleanup
+- [ ] R1–R12 are all met (§3)
+- [ ] The PDF has a summary page for each city, a line chart, a histogram, and one heatmap per city
+- [ ] No user error produces a traceback
+- [ ] `docs/design.md` contains the class diagram
+- [ ] A fresh clone runs following the README
 
-| File | Decision | Why |
-|---|---|---|
-| `docs/projectGuide.md` | **keep** | the single internal plan |
-| `docs/design.md` | **create in Phase 5** | the graded deliverable (R12) |
-| `docs/roadmap.md` | **deleted** ✅ | superseded by §5–6 of this guide |
-| `docs/review.md` | **deleted** ✅ | its findings are folded into this guide |
-| `docs/walkthrough.md` | **deleted** ✅ | Phase 1 tutorial; it hard-codes line numbers and goes stale, and `design.md` covers the rationale |
+## 9. Out of scope
 
-## 9. Changes to the previous plan (and why)
-
-| Change | Type | Reason |
-|---|---|---|
-| Replaced the `WeatherAnalyzer` class with pure functions | modified | Simpler and easier to test, and the task only asks for classes that model something |
-| Validation moved into `Measurement.__post_init__`; `parse_row()` raises `MalformedDataError` for every bad row | modified | One place for the rules, and consistent exceptions |
-| `BaseLoader.load()` as a template method; subclasses implement only `read_rows()` | modified | The JSON loader is about 5 lines, with no duplicated validation |
-| Anomalies measured against each calendar month | modified | A single yearly μ/σ only flags ordinary winter and summer days |
-| Added `temperature_trend()` | **added** | "Trends" is in the task; the old plan only had smoothing |
-| Dropped the 7-day rolling mean | **removed** | Not in the task |
-| Cities: Budapest (CSV), Debrecen (CSV), Vienna (JSON), instead of Kecskemét + `budapest.json` | modified | "Several cities" means 3, and a JSON file for a *different* city tests the JSON loader while adding a city; a duplicate of Budapest would add nothing |
-| Dropped `--cities` (name from the file) and `--format` (from the `--output` suffix) | **removed** | Fewer flags and nothing to get out of sync |
-| PNG output = one file per figure; no multi-panel dashboard | simplified | The same code path as the PDF |
-| `Figure()` instead of `pyplot` | modified | Headless, no global state |
-| Mermaid class diagram in `design.md`; no PNG export | simplified | No extra tool needed, and GitHub renders it |
-| One test file per module plus CLI end-to-end; no separate `test_visualization.py` | simplified | Plots are covered through `Report` |
-| `output/` in `.gitignore`; Python ≥ 3.10 and data source in the README | added | Small gaps found in the review |
-| `roadmap.md`, `review.md` and `walkthrough.md` replaced by this guide | **removed** | One document to keep up to date |
-
-**Explicitly out of scope:** a database, a web UI, downloading data through an API, config files, packaging/`setup.py`, CI pipelines, more weather variables (wind, pressure, snow), forecasting and machine learning.
+A database, a web UI, downloading data at runtime, config files, packaging (`setup.py`), CI pipelines, extra weather variables (wind, pressure, snow), forecasting and machine learning.
