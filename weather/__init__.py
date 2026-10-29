@@ -2,7 +2,7 @@
 
 Public API re-exported here for convenient imports::
 
-    from weather import CSVLoader, WeatherAnalyzer
+    from weather import load_station, CSVLoader, JSONLoader, WeatherAnalyzer
     from weather import Measurement, WeatherStation
     from weather import WeatherDataError, MalformedDataError
     from weather import setup_logging
@@ -10,12 +10,15 @@ Public API re-exported here for convenient imports::
 
 from weather.analysis import WeatherAnalyzer
 from weather.exceptions import MalformedDataError, WeatherDataError
-from weather.loaders import CSVLoader
+from weather.loaders import BaseLoader, CSVLoader, JSONLoader, load_station
 from weather.logger import setup_logging
 from weather.models import Measurement, WeatherStation
 
 __all__ = [
+    "BaseLoader",
     "CSVLoader",
+    "JSONLoader",
+    "load_station",
     "WeatherAnalyzer",
     "Measurement",
     "WeatherStation",
